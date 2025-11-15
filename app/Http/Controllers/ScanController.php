@@ -278,6 +278,106 @@ class ScanController extends Controller
         ]);
     }
 
+    public function processRemoveBg(Request $request, string $scan_session): JsonResponse
+    {
+        $session = ScanSession::with('images')->find($scan_session);
+
+        if (!$session) {
+            return response()->json([
+                'ok'      => false,
+                'message' => 'Scan session tidak ditemukan.',
+            ], 404);
+        }
+
+        $image = $session->images->first();
+
+        if (!$image) {
+            return response()->json([
+                'ok'      => false,
+                'message' => 'Tidak ada image terkait session ini.',
+            ], 400);
+        }
+
+        // 🔍 Sumber gambar: ORIGINAL (sesuai permintaan kamu)
+        $sourceUrl = $image->img_original_url ?? $image->img_roi_url;
+
+        if (!$sourceUrl) {
+            return response()->json([
+                'ok'      => false,
+                'message' => 'URL gambar original/ROI tidak tersedia.',
+            ], 400);
+        }
+
+        $flaskBase = rtrim(env('FLASK_CAT_API_URL'), '/'); // contoh: http://127.0.0.1:5000/v1/cat
+        $endpoint  = $flaskBase . '/remove-bg';
+
+        try {
+            $resp = Http::timeout(60)
+                ->acceptJson()
+                ->post($endpoint, [
+                    'url' => $sourceUrl,
+                ]);
+
+            if (!$resp->ok()) {
+                return response()->json([
+                    'ok'          => false,
+                    'message'     => 'Gagal terhubung ke service remove-bg.',
+                    'status_code' => $resp->status(),
+                    'body'        => $resp->json(),
+                ], 502);
+            }
+
+            $data = $resp->json();
+
+            if (!($data['ok'] ?? false)) {
+                return response()->json([
+                    'ok'      => false,
+                    'message' => $data['message'] ?? 'Remove-bg gagal di Flask.',
+                    'error'   => $data,
+                ], 502);
+            }
+
+            // Struktur dari Flask: ok, id, url, bucket, filename, hash, cached
+            $removeBgId  = $data['id']  ?? null;
+            $removeBgUrl = $data['url'] ?? null;
+
+            if (!$removeBgId || !$removeBgUrl) {
+                return response()->json([
+                    'ok'      => false,
+                    'message' => 'Response Flask tidak mengandung id/url.',
+                    'error'   => $data,
+                ], 502);
+            }
+
+            // Simpan ke DB
+            $image->img_remove_bg_id  = $removeBgId;
+            $image->img_remove_bg_url = $removeBgUrl;
+            $image->save();
+
+            return response()->json([
+                'ok'   => true,
+                'data' => [
+                    'id'      => $removeBgId,
+                    'url'     => $removeBgUrl,
+                    'bucket'  => $data['bucket'] ?? 'remove-bg',
+                    'cached'  => $data['cached'] ?? null,
+                    'hash'    => $data['hash'] ?? null,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('processRemoveBg error: ' . $e->getMessage(), [
+                'scan_session' => $scan_session,
+                'source_url'   => $sourceUrl,
+                'trace'        => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'ok'      => false,
+                'message' => 'Terjadi kesalahan saat menghapus background.',
+            ], 500);
+        }
+    }
+
     public function results()
     {
         return Inertia::render('scan/scan-results');
@@ -293,7 +393,7 @@ class ScanController extends Controller
         return Inertia::render('scan/scan-removebg-server');
     }
 
-    // 🔥 NEW: proses remove BG via remove.bg API
+    // proses remove BG via remove.bg API
     public function removeBgServerProcess(Request $request)
     {
         try {

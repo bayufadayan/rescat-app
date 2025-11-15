@@ -22,6 +22,7 @@ Route::prefix('scan')->group(function () {
     Route::post('/sessions', [ScanController::class, 'storeSession'])->name('scan.sessions.store');
     Route::get('/process', [ScanController::class, 'processIndex'])->name('scan.process.index');
     Route::get('/process/{scan_session}', [ScanController::class, 'process'])->name('scan.process');
+    Route::post('/process/{scan_session}/remove-bg', [ScanController::class, 'processRemoveBg'])->name('scan.process.removebg');
     Route::get('/results', [ScanController::class, 'results'])->name('scan.results');
     Route::get('/removebg', [ScanController::class, 'removebg'])->name('scan.removebg');
     Route::get('/removebg-server', [ScanController::class, 'removebgServerPage'])->name('scan.removebg.server');

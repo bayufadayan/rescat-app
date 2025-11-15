@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Home, Info } from "lucide-react";
 import { route } from "ziggy-js";
 import LottiePlayer from "@/components/lottie/LottiePlayer";
@@ -11,25 +11,87 @@ type ScanProcessProps = {
 
 export default function ScanProcess({ session }: ScanProcessProps) {
     const [processingState, setProcessingState] = useState<
-        "idle" | "processing" | "done"
+        "idle" | "processing" | "done" | "error"
     >("processing");
+
+    const [removedUrl, setRemovedUrl] = useState<string | null>(null);
 
     const firstImage = session?.images?.[0];
     const rawOriginalUrl = firstImage?.img_original_url as string | undefined;
 
+    // Untuk tampilan (tambah ?cors=1 kalau perlu di FE)
     const originalUrl = rawOriginalUrl
         ? `${rawOriginalUrl}${rawOriginalUrl.includes("?") ? "&" : "?"}cors=1`
         : undefined;
 
-    // Simulasi proses 3 detik → selesai
-    useEffect(() => {
-        const t = setTimeout(() => {
-            setProcessingState("processing");
-        }, 3000);
-        return () => clearTimeout(t);
-    }, []);
+    // Untuk efek mask: url PNG hasil remove-bg
+    const isImageReady = processingState === "done" && !!removedUrl;
+    const maskImage = removedUrl ? `url(${removedUrl})` : undefined;
 
-    const isDone = processingState === "idle";
+    // biar efek jalan sekali saja (hindari double-call di StrictMode)
+    const hasRequestedRef = useRef(false);
+
+    useEffect(() => {
+        if (hasRequestedRef.current) return;
+        hasRequestedRef.current = true;
+
+        if (!rawOriginalUrl) {
+            console.warn("Tidak ada img_original_url pada session.images[0]");
+            setProcessingState("error");
+            return;
+        }
+
+        const run = async () => {
+            try {
+                setProcessingState("processing");
+
+                const endpoint = route("scan.process.removebg", {
+                    scan_session: session.id,
+                });
+
+                const csrfToken = (document.querySelector(
+                    'meta[name="csrf-token"]'
+                ) as HTMLMetaElement | null)?.content;
+
+                const res = await fetch(endpoint, {
+                    method: "POST",
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest",
+                        ...(csrfToken ? { "X-CSRF-TOKEN": csrfToken } : {}),
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({}),
+                });
+
+                const contentType = res.headers.get("Content-Type") || "";
+                let payload: any = null;
+                if (contentType.includes("application/json")) {
+                    payload = await res.json();
+                }
+
+                if (!res.ok || !payload?.ok) {
+                    throw new Error(
+                        payload?.message || "Gagal memproses remove-bg di server."
+                    );
+                }
+
+                const url: string | undefined =
+                    payload?.data?.url ?? payload?.url;
+
+                if (!url) {
+                    throw new Error("URL hasil remove-bg tidak tersedia.");
+                }
+
+                setRemovedUrl(url);
+                setProcessingState("done");
+            } catch (e) {
+                console.error("ScanProcess remove-bg error:", e);
+                setProcessingState("error");
+            }
+        };
+
+        void run();
+    }, [rawOriginalUrl, session.id]);
 
     return (
         <main className="min-h-dvh h-dvh flex items-center justify-center bg-[linear-gradient(to_bottom,_#0091F3,_#21A6FF)] relative">
@@ -67,7 +129,7 @@ export default function ScanProcess({ session }: ScanProcessProps) {
                 <div className="flex items-center justify-center flex-col relative">
                     <div className="flex flex-col items-center gap-6">
                         <div className="relative h-72 w-72">
-                            {/* Background Circle */}
+                            {/* Lingkaran background */}
                             <svg
                                 viewBox="0 0 120 120"
                                 className="absolute inset-0 h-full w-full"
@@ -83,8 +145,8 @@ export default function ScanProcess({ session }: ScanProcessProps) {
                                 />
                             </svg>
 
-                            {/* Loader Circle */}
-                            {!isDone && (
+                            {/* Loader circle (muter) */}
+                            {processingState !== "done" && (
                                 <svg
                                     viewBox="0 0 120 120"
                                     className="absolute inset-0 h-full w-full animate-[spin_1.3s_linear_infinite]"
@@ -103,13 +165,75 @@ export default function ScanProcess({ session }: ScanProcessProps) {
                                 </svg>
                             )}
 
-                            {/* Image */}
-                            {isDone ? (
-                                <img
-                                    src={originalUrl ?? "/images/dummy/cat-original.png"}
-                                    alt="subject"
-                                    className="absolute left-1/2 top-1/2 h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full object-cover shadow-xl ring-4 ring-white/70"
-                                />
+                            {isImageReady ? (
+                                <>
+                                    <img
+                                        src={originalUrl ?? "/images/dummy/cat-original.png"}
+                                        alt="subject"
+                                        className="absolute left-1/2 top-1/2 h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full object-cover shadow-xl ring-4 ring-white/70"
+                                    />
+
+                                    <style>
+                                        {`
+                                            @keyframes scan-sweep {
+                                                0% { background-position: -60% 50%; }
+                                                100% { background-position: 160% 50%; }
+                                            }
+                                            @keyframes scan-pulse {
+                                                0%,100% { filter: brightness(1); }
+                                                50% { filter: brightness(1.25); }
+                                            }
+                                            @keyframes scan-glow {
+                                                0%,100% { opacity: .35; transform: scale(1); }
+                                                50% { opacity: .6; transform: scale(1.02); }
+                                            }
+                                        `}
+                                    </style>
+
+                                    <div
+                                        className="absolute left-1/2 top-1/2 h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full overflow-hidden"
+                                        aria-hidden="true"
+                                    >
+                                        <div
+                                            className="h-full w-full"
+                                            style={{
+                                                WebkitMaskImage: maskImage,
+                                                maskImage: maskImage,
+                                                WebkitMaskSize: "cover",
+                                                maskSize: "cover",
+                                                WebkitMaskRepeat: "no-repeat",
+                                                maskRepeat: "no-repeat",
+                                                WebkitMaskPosition: "center",
+                                                maskPosition: "center",
+                                                background:
+                                                    "linear-gradient(100deg, rgba(0,145,243,0) 0%, rgba(0,145,243,0.55) 40%, rgba(0,145,243,0.85) 50%, rgba(0,145,243,0.55) 60%, rgba(0,145,243,0) 100%)",
+                                                animation:
+                                                    "scan-sweep 2.4s linear infinite, scan-pulse 2.2s ease-in-out infinite",
+                                                backgroundSize: "220% 100%",
+                                                backgroundPosition: "-50% 50%",
+                                                mixBlendMode: "screen",
+                                            }}
+                                        />
+
+                                        <div
+                                            className="pointer-events-none absolute inset-0"
+                                            style={{
+                                                WebkitMaskImage: maskImage,
+                                                maskImage: maskImage,
+                                                WebkitMaskSize: "cover",
+                                                maskSize: "cover",
+                                                WebkitMaskRepeat: "no-repeat",
+                                                maskRepeat: "no-repeat",
+                                                WebkitMaskPosition: "center",
+                                                maskPosition: "center",
+                                                background:
+                                                    "radial-gradient(60% 60% at 50% 50%, rgba(33,166,255,0.25) 0%, rgba(33,166,255,0.1) 50%, rgba(33,166,255,0) 100%)",
+                                                animation: "scan-glow 3.5s ease-in-out infinite",
+                                                mixBlendMode: "screen",
+                                            }}
+                                        />
+                                    </div>
+                                </>
                             ) : (
                                 <div className="absolute left-1/2 top-1/2 h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full object-cover bg-white flex items-center justify-center">
                                     <LottiePlayer src="/animations/waiting-cat.lottie" />
@@ -130,7 +254,7 @@ export default function ScanProcess({ session }: ScanProcessProps) {
                                 State: {processingState}
                             </p>
 
-                            {!isDone && (
+                            {processingState !== "done" && (
                                 <>
                                     <p className="flex items-center gap-2 text-white/95">
                                         <span className="inline-block h-3 w-3 animate-[spin_1s_linear_infinite] rounded-full border-2 border-white border-t-transparent" />
