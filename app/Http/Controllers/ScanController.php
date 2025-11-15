@@ -298,7 +298,21 @@ class ScanController extends Controller
             ], 400);
         }
 
-        // 🔍 Sumber gambar: ORIGINAL (sesuai permintaan kamu)
+        // ✅ STEP 1: Cek dulu apakah sudah punya remove-bg di DB
+        if ($image->img_remove_bg_url && $image->img_remove_bg_id) {
+            return response()->json([
+                'ok'   => true,
+                'data' => [
+                    'id'      => $image->img_remove_bg_id,
+                    'url'     => $image->img_remove_bg_url,
+                    'bucket'  => 'remove-bg',
+                    'cached'  => true,        // info tambahan buat FE
+                    'source'  => 'database',   // cuma penanda aja
+                ],
+            ]);
+        }
+
+        // ✅ STEP 2: Kalau belum ada di DB → baru call Flask
         $sourceUrl = $image->img_original_url ?? $image->img_roi_url;
 
         if (!$sourceUrl) {
@@ -337,7 +351,6 @@ class ScanController extends Controller
                 ], 502);
             }
 
-            // Struktur dari Flask: ok, id, url, bucket, filename, hash, cached
             $removeBgId  = $data['id']  ?? null;
             $removeBgUrl = $data['url'] ?? null;
 
@@ -349,7 +362,7 @@ class ScanController extends Controller
                 ], 502);
             }
 
-            // Simpan ke DB
+            // ✅ STEP 3: Simpan ke DB (biar next time pakai cache DB)
             $image->img_remove_bg_id  = $removeBgId;
             $image->img_remove_bg_url = $removeBgUrl;
             $image->save();
@@ -360,8 +373,9 @@ class ScanController extends Controller
                     'id'      => $removeBgId,
                     'url'     => $removeBgUrl,
                     'bucket'  => $data['bucket'] ?? 'remove-bg',
-                    'cached'  => $data['cached'] ?? null,
+                    'cached'  => $data['cached'] ?? false,
                     'hash'    => $data['hash'] ?? null,
+                    'source'  => 'flask',  // info aja
                 ],
             ]);
         } catch (\Throwable $e) {
@@ -377,6 +391,7 @@ class ScanController extends Controller
             ], 500);
         }
     }
+
 
     public function results()
     {
