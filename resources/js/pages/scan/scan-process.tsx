@@ -152,7 +152,7 @@ export default function ScanProcess({ session }: ScanProcessProps) {
                 <div className="bg-white shadow-md w-full rounded-full p-2 flex flex-row gap-2 items-center max-w-lg self-center">
                     <Info height={20} width={20} className="text-amber-500" />
                     <p className="flex flex-1 text-black text-xs">
-                        Anda dapat kembali ke beranda jika terlalu lama
+                        Tunggu sebentar! dan jangan refresh browser anda
                     </p>
                 </div>
             </div>
