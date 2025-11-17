@@ -322,7 +322,7 @@ class ScanController extends Controller
             ], 400);
         }
 
-        $flaskBase = rtrim(env('FLASK_CAT_API_URL'), '/'); // contoh: http://127.0.0.1:5000/v1/cat
+        $flaskBase = rtrim(env('FLASK_CAT_API_URL'), '/');
         $endpoint  = $flaskBase . '/remove-bg';
 
         try {
