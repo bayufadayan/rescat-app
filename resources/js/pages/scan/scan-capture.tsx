@@ -73,7 +73,7 @@ export default function ScanCapture() {
             const filename = `shot-${Date.now()}.jpg`;
             const file = dataUrlToFile(previewDataUrl, filename, result.mime || "image/jpeg");
 
-            // upload → content.rescat.life (FormData: bucket dulu, lalu file)
+            // upload → storage.rescat.life (FormData: bucket dulu, lalu file)
             const uploaded = await uploadToContent(file, "original-photo");
             // uploaded: { id, bucket, filename, originalName, mime, size, createdAt, url }
 

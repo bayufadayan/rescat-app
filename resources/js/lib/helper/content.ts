@@ -9,7 +9,7 @@ export type ContentFile = {
     url: string;
 };
 
-const CONTENT_API_BASE = 'https://content.rescat.life/api';
+const CONTENT_API_BASE = 'https://storage.rescat.life/api';
 
 export async function uploadToContent(
     file: File,

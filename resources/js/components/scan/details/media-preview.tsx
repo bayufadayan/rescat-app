@@ -156,7 +156,7 @@ export default function MediaPreview({ phase = "idle", errorMsg = "" }: Props) {
 
                                 // --- kirim DELETE request kalau ada ID
                                 if (ids.length > 0) {
-                                    await fetch("https://content.rescat.life/api/files/selected", {
+                                    await fetch("https://storage.rescat.life/api/files/selected", {
                                         method: "DELETE",
                                         headers: {
                                             "Content-Type": "application/json",

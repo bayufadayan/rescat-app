@@ -95,7 +95,7 @@ export default function ScanDetails() {
 
     /**
      * Ambil file dari URL storage → kirim ke analyze API (FormData "file")
-     * Catatan: pastikan CORS di content.rescat.life sudah mengizinkan fetch dari domain FE.
+     * Catatan: pastikan CORS di storage.rescat.life sudah mengizinkan fetch dari domain FE.
      */
     const analyzeOnce = useCallback(async () => {
         try {
