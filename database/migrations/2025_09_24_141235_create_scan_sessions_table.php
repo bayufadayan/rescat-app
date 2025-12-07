@@ -23,7 +23,7 @@ return new class extends Migration
                 ->nullOnDelete();
             $table->string('scan_type');
             $table->enum('checkup_type', ['quick', 'detail']);
-            $table->enum('status', ['processing', 'done']);
+            $table->enum('status', ['processing', 'done', 'failed']);
             $table->decimal('latitude', 10, 7)->nullable();
             $table->decimal('longitude', 10, 7)->nullable();
             $table->string('location')->nullable();
