@@ -14,14 +14,16 @@ class ScanResult extends Model
     protected $table = 'scan_results';
 
     protected $fillable = [
-        'scan_id',      // FK ke scan_sessions.ulid
-        'total_score',  // DECIMAL(8,5)
-        'label',
+        'scan_id',
+        'remarks',
+        'img_landmark_id',
+        'img_landmark_url',
     ];
 
     protected $casts = [
-        'total_score' => 'decimal:5',
-        'label'       => 'string',
+        'remarks'         => 'string',
+        'img_landmark_id' => 'string',
+        'img_landmark_url'=> 'string',
     ];
 
     public function session()

@@ -1,8 +1,10 @@
 import React from "react";
+import { useScanResultContext } from '@/contexts/scan-result-context';
 
 export default function FinalScore() {
-    const score = 89.45;
-    const label = "Sehat";
+    const { summary } = useScanResultContext();
+    const score = summary.averagePercent;
+    const label = summary.remark;
 
     return (
         <div className="text-center select-none">

@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ScanStatus;
 use App\Models\ScanImage;
+use App\Models\ScanResult;
+use App\Models\ScanResultDetail;
 use App\Models\ScanSession;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
@@ -15,6 +18,8 @@ use Inertia\Inertia;
 
 class ScanController extends Controller
 {
+    private const AREA_KEYS = ['left_eye', 'right_eye', 'mouth', 'left_ear', 'right_ear'];
+
     public function index()
     {
         return redirect()->route('scan.options');
@@ -280,11 +285,12 @@ class ScanController extends Controller
 
     public function processRemoveBg(Request $request, string $scan_session): JsonResponse
     {
-        $session = ScanSession::with('images')->find($scan_session);
+        $session = ScanSession::with(['images', 'result.details'])->find($scan_session);
 
         if (!$session) {
             return response()->json([
                 'ok'      => false,
+                'code'    => 'SESSION_NOT_FOUND',
                 'message' => 'Scan session tidak ditemukan.',
             ], 404);
         }
@@ -294,108 +300,369 @@ class ScanController extends Controller
         if (!$image) {
             return response()->json([
                 'ok'      => false,
+                'code'    => 'SESSION_IMAGE_MISSING',
                 'message' => 'Tidak ada image terkait session ini.',
             ], 400);
         }
 
-        // ✅ STEP 1: Cek dulu apakah sudah punya remove-bg di DB
-        if ($image->img_remove_bg_url && $image->img_remove_bg_id) {
-            return response()->json([
-                'ok'   => true,
-                'data' => [
-                    'id'      => $image->img_remove_bg_id,
-                    'url'     => $image->img_remove_bg_url,
-                    'bucket'  => 'remove-bg',
-                    'cached'  => true,        // info tambahan buat FE
-                    'source'  => 'database',   // cuma penanda aja
-                ],
-            ]);
+        if ($session->status === ScanStatus::Done && $session->result && $session->result->details->isNotEmpty()) {
+            return $this->buildProcessResponse($session);
         }
-
-        // ✅ STEP 2: Kalau belum ada di DB → baru call Flask
-        $sourceUrl = $image->img_original_url ?? $image->img_roi_url;
-
-        if (!$sourceUrl) {
-            return response()->json([
-                'ok'      => false,
-                'message' => 'URL gambar original/ROI tidak tersedia.',
-            ], 400);
-        }
-
-        $flaskBase = rtrim(env('FLASK_CAT_API_URL'), '/');
-        $endpoint  = $flaskBase . '/remove-bg';
 
         try {
-            $resp = Http::timeout(60)
-                ->acceptJson()
-                ->post($endpoint, [
-                    'url' => $sourceUrl,
-                ]);
+            $session->status = ScanStatus::Processing;
+            $session->save();
 
-            if (!$resp->ok()) {
-                return response()->json([
-                    'ok'          => false,
-                    'message'     => 'Gagal terhubung ke service remove-bg.',
-                    'status_code' => $resp->status(),
-                    'body'        => $resp->json(),
-                ], 502);
-            }
+            $removeBgData = $this->ensureRemoveBgImage($image);
+            $result = $this->ensureScanResult($session);
+            $landmarkData = $this->performLandmarkDetection($session, $image, $result);
+            $classificationData = $this->performAreaClassification($result, $landmarkData['areas'] ?? []);
 
-            $data = $resp->json();
+            $session->setRelation('result', $result->fresh('details'));
+            $session->status = ScanStatus::Done;
+            $session->save();
 
-            if (!($data['ok'] ?? false)) {
-                return response()->json([
-                    'ok'      => false,
-                    'message' => $data['message'] ?? 'Remove-bg gagal di Flask.',
-                    'error'   => $data,
-                ], 502);
-            }
-
-            $removeBgId  = $data['id']  ?? null;
-            $removeBgUrl = $data['url'] ?? null;
-
-            if (!$removeBgId || !$removeBgUrl) {
-                return response()->json([
-                    'ok'      => false,
-                    'message' => 'Response Flask tidak mengandung id/url.',
-                    'error'   => $data,
-                ], 502);
-            }
-
-            // ✅ STEP 3: Simpan ke DB (biar next time pakai cache DB)
-            $image->img_remove_bg_id  = $removeBgId;
-            $image->img_remove_bg_url = $removeBgUrl;
-            $image->save();
-
-            return response()->json([
-                'ok'   => true,
-                'data' => [
-                    'id'      => $removeBgId,
-                    'url'     => $removeBgUrl,
-                    'bucket'  => $data['bucket'] ?? 'remove-bg',
-                    'cached'  => $data['cached'] ?? false,
-                    'hash'    => $data['hash'] ?? null,
-                    'source'  => 'flask',  // info aja
-                ],
+            return $this->buildProcessResponse($session, [
+                'remove_bg' => $removeBgData,
+                'landmark' => $landmarkData,
+                'classification' => $classificationData,
             ]);
         } catch (\Throwable $e) {
-            Log::error('processRemoveBg error: ' . $e->getMessage(), [
+            Log::error('processRemoveBg pipeline error: ' . $e->getMessage(), [
                 'scan_session' => $scan_session,
-                'source_url'   => $sourceUrl,
                 'trace'        => $e->getTraceAsString(),
             ]);
 
+            $session->status = ScanStatus::Failed;
+            $session->save();
+
             return response()->json([
                 'ok'      => false,
-                'message' => 'Terjadi kesalahan saat menghapus background.',
+                'code'    => 'PIPELINE_FAILED',
+                'message' => $e->getMessage() ?: 'Terjadi kesalahan saat memproses sesi.',
             ], 500);
         }
     }
 
-
-    public function results()
+    public function processStatus(string $scan_session): JsonResponse
     {
-        return Inertia::render('scan/scan-results');
+        $session = ScanSession::with(['result.details'])->find($scan_session);
+
+        if (!$session) {
+            return response()->json([
+                'ok'      => false,
+                'message' => 'Scan session tidak ditemukan.',
+            ], 404);
+        }
+
+        return $this->buildProcessResponse($session);
+    }
+
+    public function results(Request $request)
+    {
+        $sessionId = $request->query('session');
+
+        if (!$sessionId) {
+            abort(404, 'Scan session tidak ditemukan.');
+        }
+
+        $session = ScanSession::with(['images', 'result.details'])->findOrFail($sessionId);
+
+        if ($session->user_id && $session->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        return Inertia::render('scan/scan-results', [
+            'session' => $session,
+            'result'  => $session->result,
+        ]);
+    }
+
+    /**
+     * Show results using path param `/scan/result/{scan_session}`
+     */
+    public function resultShow(string $scan_session)
+    {
+        $session = ScanSession::with(['images', 'result.details'])->findOrFail($scan_session);
+
+        if ($session->user_id && $session->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        return Inertia::render('scan/scan-results', [
+            'session' => $session,
+            'result'  => $session->result,
+        ]);
+    }
+
+    private function buildProcessResponse(ScanSession $session, array $extra = []): JsonResponse
+    {
+        $session->loadMissing(['images', 'result.details']);
+
+        $statusValue = $session->status instanceof ScanStatus
+            ? $session->status->value
+            : $session->status;
+
+        return response()->json([
+            'ok'   => true,
+            'data' => array_merge([
+                'session' => [
+                    'id'     => $session->id,
+                    'status' => $statusValue,
+                ],
+                'images' => $session->images,
+                'result' => $session->result,
+            ], $extra),
+        ]);
+    }
+
+    private function ensureScanResult(ScanSession $session): ScanResult
+    {
+        if ($session->result) {
+            return $session->result;
+        }
+
+        $result = ScanResult::create([
+            'scan_id' => $session->id,
+            'remarks' => 'Sedang dianalisis',
+        ]);
+
+        $session->setRelation('result', $result);
+
+        return $result;
+    }
+
+    private function ensureRemoveBgImage(ScanImage $image): array
+    {
+        if ($image->img_remove_bg_id && $image->img_remove_bg_url) {
+            return [
+                'id'     => $image->img_remove_bg_id,
+                'url'    => $image->img_remove_bg_url,
+                'bucket' => 'remove-bg',
+                'cached' => true,
+            ];
+        }
+
+        $sourceUrl = $image->img_original_url ?? $image->img_roi_url;
+
+        if (!$sourceUrl) {
+            throw new \RuntimeException('[REMOVE_BG] URL gambar original/ROI tidak tersedia.');
+        }
+
+        $data = $this->callFlask('/remove-bg', ['url' => $sourceUrl], 60, 'remove-bg');
+
+        if (!($data['ok'] ?? false)) {
+            throw new \RuntimeException('[REMOVE_BG] ' . ($data['message'] ?? 'Remove-bg gagal.'));
+        }
+
+        $removeBgId = $data['id'] ?? null;
+        $removeBgUrl = $data['url'] ?? null;
+
+        if (!$removeBgId || !$removeBgUrl) {
+            throw new \RuntimeException('[REMOVE_BG] Response remove-bg tidak lengkap.');
+        }
+
+        $image->img_remove_bg_id = $removeBgId;
+        $image->img_remove_bg_url = $removeBgUrl;
+        $image->save();
+
+        return [
+            'id'     => $removeBgId,
+            'url'    => $removeBgUrl,
+            'bucket' => $data['bucket'] ?? 'remove-bg',
+            'cached' => $data['cached'] ?? false,
+        ];
+    }
+
+    private function performLandmarkDetection(ScanSession $session, ScanImage $image, ScanResult $result): array
+    {
+        $sourceUrl = $image->img_roi_url ?? $image->img_original_url;
+
+        if (!$sourceUrl) {
+            throw new \RuntimeException('[LANDMARK] URL gambar original/ROI tidak tersedia.');
+        }
+
+        $payload = $this->callFlask('/landmark', ['file' => $sourceUrl], 90, 'landmark');
+
+        if (!($payload['ok'] ?? false)) {
+            throw new \RuntimeException('[LANDMARK] ' . ($payload['message'] ?? 'Landmark detection gagal.'));
+        }
+
+        $result->img_landmark_id = data_get($payload, 'landmark.img_landmark_id');
+        $result->img_landmark_url = data_get($payload, 'landmark.img_landmark_url');
+        if (!$result->remarks) {
+            $result->remarks = 'Sedang dianalisis';
+        }
+        $result->save();
+
+        $areas = [];
+
+        foreach (self::AREA_KEYS as $area) {
+            $roiId = data_get($payload, "$area.img_{$area}_id");
+            $roiUrl = data_get($payload, "$area.img_{$area}_url");
+
+            if (!$roiId && !$roiUrl) {
+                continue;
+            }
+
+            $detail = ScanResultDetail::updateOrCreate(
+                ['scan_result_id' => $result->id, 'area_name' => $area],
+                [
+                    'img_roi_area_id'  => $roiId,
+                    'img_roi_area_url' => $roiUrl,
+                ]
+            );
+
+            $areas[$area] = [
+                'detail_id' => $detail->id,
+                'roi_id'    => $roiId,
+                'roi_url'   => $roiUrl,
+            ];
+        }
+
+        $session->setRelation('result', $result->fresh('details'));
+
+        return [
+            'ok'       => true,
+            'landmark' => [
+                'img_landmark_id'  => $result->img_landmark_id,
+                'img_landmark_url' => $result->img_landmark_url,
+            ],
+            'areas'    => $areas,
+        ];
+    }
+
+    private function performAreaClassification(ScanResult $result, array $areas): array
+    {
+        if (empty($areas)) {
+            throw new \RuntimeException('[AREA_CHECK] Tidak ada area yang siap dianalisis.');
+        }
+
+        $payload = [];
+        foreach ($areas as $area => $data) {
+            if (!empty($data['roi_url'])) {
+                $payload[$area] = $data['roi_url'];
+            }
+        }
+
+        if (empty($payload)) {
+            throw new \RuntimeException('[AREA_CHECK] URL area untuk klasifikasi tidak ditemukan.');
+        }
+
+        $body = $this->callFlask('/area-check', $payload, 120, 'area-check');
+
+        if (!($body['ok'] ?? false)) {
+            throw new \RuntimeException('[AREA_CHECK] ' . ($body['message'] ?? 'Area-check gagal.'));
+        }
+
+        $classification = $body['classification'] ?? [];
+        $gradcam = $body['gradcam'] ?? [];
+
+        foreach ($classification as $area => $cls) {
+            $detail = ScanResultDetail::updateOrCreate(
+                ['scan_result_id' => $result->id, 'area_name' => $area],
+                []
+            );
+
+            $detail->confidence_score = isset($cls['confidence']) ? (float) $cls['confidence'] : null;
+            $detail->label = $cls['label'] ?? null;
+
+            $gradcamBlock = $gradcam[$area] ?? [];
+            $detail->img_gradcam_id = $gradcamBlock["img_{$area}_gradcam_id"] ?? null;
+            $detail->img_gradcam_url = $gradcamBlock["img_{$area}_gradcam_url"] ?? null;
+
+            $detail->save();
+        }
+
+        $result->load('details');
+
+        $abnormalCount = $result->details
+            ? $result->details->filter(function (ScanResultDetail $detail) {
+                return strcasecmp($detail->label ?? '', 'abnormal') === 0;
+            })->count()
+            : 0;
+
+        $remarks = $this->determineRemarkFromAbnormal($abnormalCount);
+        $result->remarks = $remarks;
+        $result->save();
+
+        return [
+            'ok'             => true,
+            'classification' => $classification,
+            'gradcam'        => $gradcam,
+            'summary'        => [
+                'abnormal_count' => $abnormalCount,
+                'remarks'        => $remarks,
+            ],
+        ];
+    }
+
+    private function callFlask(string $relativePath, array $payload, int $timeout, string $stage): array
+    {
+        if (str_starts_with($relativePath, 'http://') || str_starts_with($relativePath, 'https://')) {
+            $endpoint = $relativePath;
+        } else {
+            $base = rtrim((string) env('FLASK_CAT_API_URL'), '/');
+            $path = ltrim($relativePath, '/');
+
+            // If base already ends with /v1/cat, don't add v1/cat prefix to path
+            // If path starts with v1/cat/, strip it to avoid duplication
+            if (str_ends_with($base, '/v1/cat')) {
+                // Base sudah include /v1/cat, pastikan path tidak duplikat
+                if (str_starts_with($path, 'v1/cat/')) {
+                    $path = substr($path, 7);
+                }
+            }
+
+            $endpoint = $base . '/' . $path;
+        }
+
+        Log::info("Flask {$stage} request", [
+            'endpoint' => $endpoint,
+            'payload_keys' => array_keys($payload),
+        ]);
+
+        try {
+            $resp = Http::timeout($timeout)
+                ->acceptJson()
+                ->post($endpoint, $payload);
+        } catch (\Throwable $e) {
+            Log::warning("Flask {$stage} unreachable", [
+                'endpoint' => $endpoint,
+                'message'  => $e->getMessage(),
+            ]);
+
+            throw new \RuntimeException(sprintf('[%s] Service tidak dapat dijangkau.', strtoupper($stage)));
+        }
+
+        if (!$resp->ok()) {
+            Log::warning("Flask {$stage} HTTP error", [
+                'endpoint' => $endpoint,
+                'status'   => $resp->status(),
+                'body'     => $resp->body(),
+            ]);
+
+            throw new \RuntimeException(sprintf('[%s] Service mengembalikan status tidak valid (%s).', strtoupper($stage), $resp->status()));
+        }
+
+        $data = $resp->json();
+
+        if (!is_array($data)) {
+            throw new \RuntimeException(sprintf('[%s] Response tidak dapat diparsing.', strtoupper($stage)));
+        }
+
+        return $data;
+    }
+
+    private function determineRemarkFromAbnormal(int $abnormalCount): string
+    {
+        return match (true) {
+            $abnormalCount === 0        => 'Sehat',
+            $abnormalCount === 1        => 'Perlu perhatian ringan',
+            $abnormalCount === 2,
+            $abnormalCount === 3        => 'Perlu diperiksa',
+            default                     => 'Tidak Sehat',
+        };
     }
 
     public function removebg()

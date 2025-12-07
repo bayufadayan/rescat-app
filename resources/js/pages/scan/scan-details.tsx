@@ -33,6 +33,17 @@ export default function ScanDetails() {
     const route = useRoute();
     const isMobile = useIsMobile();
 
+    const toRelativeUrl = useCallback((url: string) => {
+        if (!url) return url;
+        try {
+            const base = typeof window !== 'undefined' ? window.location.origin : undefined;
+            const parsed = new URL(url, base);
+            return `${parsed.pathname}${parsed.search}`;
+        } catch {
+            return url;
+        }
+    }, []);
+
     const [open, setOpen] = useState(true);
     const [geoStatus, setGeoStatus] = useState<GeoStatus>("idle");
     const [coords, setCoords] = useState<Coords | null>(null);
@@ -83,11 +94,11 @@ export default function ScanDetails() {
         const hasOriginal = !!localStorage.getItem("scan:original");
         const hasResult = !!sessionStorage.getItem("scan:result");
         if (!hasOriginal && !hasResult) {
-            window.location.href = route("scan.capture");
+            window.location.href = toRelativeUrl(route("scan.capture"));
         }
-    }, [route]);
+    }, [route, toRelativeUrl]);
 
-    const analyzeUrl = useMemo(() => route("scan.analyze"), [route]);
+    const analyzeUrl = useMemo(() => toRelativeUrl(route("scan.analyze")), [route, toRelativeUrl]);
     const timeoutMs = useMemo(
         () => Number((import.meta as any).env?.VITE_SCAN_TIMEOUT_MS ?? 5000),
         []

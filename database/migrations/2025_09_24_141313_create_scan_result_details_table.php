@@ -15,8 +15,8 @@ return new class extends Migration
             $table->ulid('id')->primary();
             $table->foreignUlid('scan_result_id')->constrained()->onDelete('cascade');
             $table->string('area_name'); // e.g., 'skin', 'eyes', 'ears', etc.
-            $table->decimal('confidence_score', 8, 5);
-            $table->string('label'); // e.g., 'Healthy', 'Needs Attention', etc.
+            $table->decimal('confidence_score', 8, 5)->nullable();
+            $table->string('label')->nullable(); // e.g., 'Healthy', 'Needs Attention', etc.
             $table->text('description')->nullable(); // Optional detailed description (AI Agents)
             $table->text('advice')->nullable(); // Optional advice or recommendations (AI Agents)
             $table->string('img_roi_area_id')->nullable();

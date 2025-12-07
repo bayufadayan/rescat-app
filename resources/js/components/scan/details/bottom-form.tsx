@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useRef, useState, UIEvent } from "react";
+import React, { useCallback, useRef, useState, UIEvent } from "react";
 import * as Drawer from "vaul";
 import { Shield } from "lucide-react";
 import LocationCard from "./location-card";
@@ -33,7 +33,24 @@ const BottomForm: React.FC<Props> = ({
     const [anonymous, setAnonymous] = useState(true);
     const [name, setName] = useState("");
     const [notes, setNotes] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
     const route = useRoute();
+    const toRelativeUrl = useCallback((url: string) => {
+        if (!url) return url;
+        try {
+            const base = typeof window !== "undefined" ? window.location.origin : undefined;
+            const parsed = new URL(url, base);
+            return `${parsed.pathname}${parsed.search}`;
+        } catch {
+            return url;
+        }
+    }, []);
+
+    const buildRoute = useCallback(
+        (name: string, params?: unknown) => toRelativeUrl(route(name, params)),
+        [route, toRelativeUrl]
+    );
     const snapPoints: number[] = [0.22, 0.6, 0.96];
     const [activeSnap, setActiveSnap] = useState<number | null>(snapPoints[0]);
     const maxSnap = snapPoints[snapPoints.length - 1];
@@ -161,14 +178,18 @@ const BottomForm: React.FC<Props> = ({
                     <div className="pointer-events-auto absolute inset-x-0 bottom-0 bg-white/95 p-4 backdrop-blur">
                         <button
                             type="button"
-                            className="w-full rounded-2xl bg-sky-600 py-3.5 text-white shadow-lg shadow-sky-600/30 active:scale-[0.98]"
+                            disabled={submitting}
+                            className={`w-full rounded-2xl bg-sky-600 py-3.5 text-white shadow-lg shadow-sky-600/30 active:scale-[0.98] transition ${submitting ? "opacity-70 cursor-not-allowed" : ""}`}
                             onClick={async () => {
+                                if (submitting) return;
+                                setSubmitError(null);
                                 try {
+                                    setSubmitting(true);
                                     const payload = buildSessionPayload(address, coords, {
-                                        informer: (anonymous ? "Anonim" : (name || "Anonim")),
-                                        notes
+                                        informer: anonymous ? "Anonim" : name || "Anonim",
+                                        notes,
                                     });
-                                    const { data } = await submitScanSession(route("scan.sessions.store"), payload);
+                                    const { data } = await submitScanSession(buildRoute("scan.sessions.store"), payload);
 
                                     [
                                         "scanOption",
@@ -178,26 +199,37 @@ const BottomForm: React.FC<Props> = ({
                                         "scan:bounding-box",
                                         "scan:roi",
                                         "scan:session_id",
-                                        "scan:session_image_id"
-                                    ].forEach(key => localStorage.removeItem(key));
+                                        "scan:session_image_id",
+                                    ].forEach((key) => localStorage.removeItem(key));
 
-                                    [
-                                        "scan:result",
-                                        "scan:rid"
-                                    ].forEach(key => sessionStorage.removeItem(key));
+                                    ["scan:result", "scan:rid"].forEach((key) => sessionStorage.removeItem(key));
 
                                     localStorage.setItem("scan:session_id", data.session_id);
                                     localStorage.setItem("scan:session_image_id", data.image_id);
 
-                                    // lanjut
-                                    window.location.href = route("scan.process", data.session_id);
+                                    window.location.href = buildRoute("scan.process", data.session_id);
                                 } catch (e: any) {
-                                    alert(e?.message || "Gagal membuat sesi.");
+                                    console.error("submit session error", e);
+                                    setSubmitting(false);
+                                    setSubmitError(e?.message || "Gagal membuat sesi.");
                                 }
                             }}
                         >
-                            Periksa Sekarang
+                            {submitting ? (
+                                <span className="flex items-center justify-center gap-2 text-sm">
+                                    <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                                    Menyiapkan…
+                                </span>
+                            ) : (
+                                "Periksa Sekarang"
+                            )}
                         </button>
+
+                        {submitError && (
+                            <p className="mt-2 text-center text-xs text-red-600">
+                                {submitError}
+                            </p>
+                        )}
 
                     </div>
                 </Drawer.Content>

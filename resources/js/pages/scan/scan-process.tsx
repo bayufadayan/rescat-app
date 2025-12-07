@@ -1,35 +1,94 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Home, Info } from "lucide-react";
 import { route } from "ziggy-js";
 import LottiePlayer from "@/components/lottie/LottiePlayer";
+import type { ScanSessionPayload, ScanStatusValue } from "@/types/scan-result";
 
 type ScanProcessProps = {
-    session: any;
+    session: ScanSessionPayload;
 };
 
-export default function ScanProcess({ session }: ScanProcessProps) {
-    const [processingState, setProcessingState] = useState<
-        "idle" | "processing" | "done" | "error"
-    >("processing");
+type ProcessingState = "idle" | "processing" | "done" | "error";
 
-    const [removedUrl, setRemovedUrl] = useState<string | null>(null);
+export default function ScanProcess({ session }: ScanProcessProps) {
+    const [processingState, setProcessingState] = useState<ProcessingState>("processing");
+    const [sessionStatus, setSessionStatus] = useState<ScanStatusValue>(session.status ?? "processing");
+    const [statusMessage, setStatusMessage] = useState("Menginisiasi proses analisis …");
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [removedUrl, setRemovedUrl] = useState<string | null>(session.images?.[0]?.img_remove_bg_url ?? null);
 
     const firstImage = session?.images?.[0];
-    const rawOriginalUrl = firstImage?.img_original_url as string | undefined;
+    const rawOriginalUrl = firstImage?.img_original_url ?? null;
 
     // Untuk tampilan (tambah ?cors=1 kalau perlu di FE)
-    const originalUrl = rawOriginalUrl
-        ? `${rawOriginalUrl}${rawOriginalUrl.includes("?") ? "&" : "?"}cors=1`
-        : undefined;
+    const originalUrl = useMemo(() => {
+        if (!rawOriginalUrl) return undefined;
+        return `${rawOriginalUrl}${rawOriginalUrl.includes("?") ? "&" : "?"}cors=1`;
+    }, [rawOriginalUrl]);
 
-    // Untuk efek mask: url PNG hasil remove-bg
-    const isImageReady = processingState === "done" && !!removedUrl;
-    const maskImage = removedUrl ? `url(${removedUrl})` : undefined;
+    const maskSource = removedUrl ?? firstImage?.img_remove_bg_url ?? null;
+    const maskImage = maskSource ? `url(${maskSource})` : undefined;
+    const isImageReady = processingState === "done" && Boolean(maskImage);
 
-    // biar efek jalan sekali saja (hindari double-call di StrictMode)
+    const pipelineEndpoint = useMemo(
+        () => route("scan.process.removebg", { scan_session: session.id }),
+        [session.id]
+    );
+    const statusEndpoint = useMemo(
+        () => route("scan.process.status", { scan_session: session.id }),
+        [session.id]
+    );
+    const resultsUrl = useMemo(
+        () => route("scan.result", { scan_session: session.id }),
+        [session.id]
+    );
+
     const hasRequestedRef = useRef(false);
+    const redirectRef = useRef(false);
+    const pollFailureRef = useRef(0);
+
+    const runPipeline = useCallback(async () => {
+        try {
+            setProcessingState("processing");
+            setStatusMessage("Menghapus latar belakang dan menyiapkan landmark …");
+
+            const csrfToken = (document.querySelector(
+                'meta[name="csrf-token"]'
+            ) as HTMLMetaElement | null)?.content;
+
+            const res = await fetch(pipelineEndpoint, {
+                method: "POST",
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                    ...(csrfToken ? { "X-CSRF-TOKEN": csrfToken } : {}),
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({}),
+            });
+
+            const payload = await res.json().catch(() => null);
+
+            if (!res.ok || !payload?.ok) {
+                throw new Error(payload?.message || "Gagal memulai pemrosesan.");
+            }
+
+            const nextRemovedUrl: string | null =
+                payload?.data?.remove_bg?.url ??
+                payload?.data?.images?.[0]?.img_remove_bg_url ??
+                null;
+
+            if (nextRemovedUrl) {
+                setRemovedUrl(nextRemovedUrl);
+            }
+
+            setStatusMessage("Menunggu hasil klasifikasi …");
+        } catch (e) {
+            console.error("ScanProcess pipeline error:", e);
+            setProcessingState("error");
+            setErrorMsg(e instanceof Error ? e.message : "Terjadi kesalahan.");
+        }
+    }, [pipelineEndpoint]);
 
     useEffect(() => {
         if (hasRequestedRef.current) return;
@@ -38,60 +97,84 @@ export default function ScanProcess({ session }: ScanProcessProps) {
         if (!rawOriginalUrl) {
             console.warn("Tidak ada img_original_url pada session.images[0]");
             setProcessingState("error");
+            setErrorMsg("Tidak ada gambar original untuk diproses.");
             return;
         }
 
-        const run = async () => {
+        void runPipeline();
+    }, [rawOriginalUrl, runPipeline]);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const poll = async () => {
             try {
-                setProcessingState("processing");
-
-                const endpoint = route("scan.process.removebg", {
-                    scan_session: session.id,
+                const res = await fetch(statusEndpoint, {
+                    headers: { "X-Requested-With": "XMLHttpRequest" },
                 });
+                const payload = await res.json().catch(() => null);
 
-                const csrfToken = (document.querySelector(
-                    'meta[name="csrf-token"]'
-                ) as HTMLMetaElement | null)?.content;
-
-                const res = await fetch(endpoint, {
-                    method: "POST",
-                    headers: {
-                        "X-Requested-With": "XMLHttpRequest",
-                        ...(csrfToken ? { "X-CSRF-TOKEN": csrfToken } : {}),
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({}),
-                });
-
-                const contentType = res.headers.get("Content-Type") || "";
-                let payload: any = null;
-                if (contentType.includes("application/json")) {
-                    payload = await res.json();
+                if (!res.ok || payload?.ok === false) {
+                    throw new Error(payload?.message ?? "Gagal memuat status sesi.");
                 }
 
-                if (!res.ok || !payload?.ok) {
-                    throw new Error(
-                        payload?.message || "Gagal memproses remove-bg di server."
+                if (!payload?.data || cancelled) return;
+
+                pollFailureRef.current = 0;
+
+                const nextStatus = payload.data.session?.status as ScanStatusValue | undefined;
+                if (nextStatus) {
+                    setSessionStatus(nextStatus);
+                }
+
+                const remoteRemove = payload.data.images?.[0]?.img_remove_bg_url;
+                if (remoteRemove && !removedUrl) {
+                    setRemovedUrl(remoteRemove);
+                }
+
+                if (nextStatus === "processing") {
+                    const detailCount = payload.data.result?.details?.length ?? 0;
+                    setStatusMessage(
+                        detailCount > 0
+                            ? "Menyiapkan ringkasan hasil …"
+                            : "Sedang menganalisis area detail …"
                     );
                 }
 
-                const url: string | undefined =
-                    payload?.data?.url ?? payload?.url;
-
-                if (!url) {
-                    throw new Error("URL hasil remove-bg tidak tersedia.");
+                if (nextStatus === "done" && !redirectRef.current) {
+                    redirectRef.current = true;
+                    setProcessingState("done");
+                    setStatusMessage("Analisis selesai, menampilkan hasil …");
+                    setTimeout(() => {
+                        window.location.href = resultsUrl;
+                    }, 1200);
+                } else if (nextStatus === "failed") {
+                    setProcessingState("error");
+                    setStatusMessage("Proses gagal.");
+                    setErrorMsg(payload.data.result?.remarks ?? "Proses gagal. Silakan ulangi dari awal.");
                 }
-
-                setRemovedUrl(url);
-                setProcessingState("done");
-            } catch (e) {
-                console.error("ScanProcess remove-bg error:", e);
-                setProcessingState("error");
+            } catch (error) {
+                console.warn("Status polling error:", error);
+                pollFailureRef.current += 1;
+                if (pollFailureRef.current >= 3 && processingState !== "error") {
+                    setProcessingState("error");
+                    setErrorMsg(
+                        error instanceof Error
+                            ? error.message
+                            : "Gagal memantau status. Periksa koneksi Anda dan coba lagi."
+                    );
+                }
             }
         };
 
-        void run();
-    }, [rawOriginalUrl, session.id]);
+        poll();
+        const id = window.setInterval(poll, 3000);
+
+        return () => {
+            cancelled = true;
+            window.clearInterval(id);
+        };
+    }, [statusEndpoint, resultsUrl, removedUrl, processingState]);
 
     return (
         <main className="min-h-dvh h-dvh flex items-center justify-center bg-[linear-gradient(to_bottom,_#0091F3,_#21A6FF)] relative">
@@ -242,7 +325,7 @@ export default function ScanProcess({ session }: ScanProcessProps) {
                         </div>
 
                         {/* Status */}
-                        <div className="flex flex-col items-center gap-2">
+                        <div className="flex flex-col items-center gap-3 text-center">
                             <p className="flex items-center gap-2 text-white/80 mt-1">
                                 <span className="inline-block h-2 w-2 rounded-full bg-white/80" />
                                 <span className="text-xs font-mono tracking-wide">
@@ -250,23 +333,39 @@ export default function ScanProcess({ session }: ScanProcessProps) {
                                 </span>
                             </p>
 
-                            <p className="text-white text-xs">
-                                State: {processingState}
+                            <p className="text-white text-xs uppercase tracking-widest">
+                                Status: {sessionStatus === "done" ? "Selesai" : sessionStatus === "failed" ? "Gagal" : "Sedang Diproses"}
                             </p>
 
-                            {processingState !== "done" && (
-                                <>
+                            <p className="text-white text-sm max-w-xs leading-relaxed">
+                                {processingState === "error"
+                                    ? errorMsg ?? "Terjadi kesalahan."
+                                    : statusMessage}
+                            </p>
+
+                            {processingState !== "done" && processingState !== "error" && (
+                                <div className="flex flex-col items-center gap-2">
                                     <p className="flex items-center gap-2 text-white/95">
                                         <span className="inline-block h-3 w-3 animate-[spin_1s_linear_infinite] rounded-full border-2 border-white border-t-transparent" />
                                         <span className="text-base font-semibold tracking-wide">
-                                            Scoring grimace scale …
+                                            Sistem sedang memproses …
                                         </span>
                                     </p>
-                                    <p className="flex items-center gap-2 text-white/90">
+                                    <p className="flex items-center gap-2 text-white/90 text-xs">
                                         <span className="inline-block h-3 w-3 animate-[spin_1s_linear_infinite] rounded-full border-2 border-white border-t-transparent" />
-                                        <span className="text-sm">Getting final score …</span>
+                                        <span>Jangan tutup atau refresh halaman.</span>
                                     </p>
-                                </>
+                                </div>
+                            )}
+
+                            {processingState === "error" && (
+                                <button
+                                    type="button"
+                                    className="mt-1 rounded-full bg-white/20 text-white px-4 py-1 text-xs hover:bg-white/30"
+                                    onClick={() => window.location.reload()}
+                                >
+                                    Coba lagi
+                                </button>
                             )}
                         </div>
                     </div>
@@ -276,7 +375,7 @@ export default function ScanProcess({ session }: ScanProcessProps) {
                 <div className="bg-white shadow-md w-full rounded-full p-2 flex flex-row gap-2 items-center max-w-lg self-center">
                     <Info height={20} width={20} className="text-amber-500" />
                     <p className="flex flex-1 text-black text-xs">
-                        Tunggu sebentar! dan jangan refresh browser anda
+                        Tunggu sebentar! Halaman hasil akan terbuka otomatis.
                     </p>
                 </div>
             </div>

@@ -14,19 +14,22 @@ class ScanResultDetail extends Model
     protected $table = 'scan_result_details';
 
     protected $fillable = [
-        'scan_result_id', // FK ke scan_results.id
-        'criteria',       // contoh: 'skin', 'eyes', 'ears', ...
-        'score',          // DECIMAL(8,5)
-        'remarks',        // ringkas: 'Healthy', 'Needs Attention', ...
-        'description',    // penjelasan detail (opsional)
-        'advice',         // saran/rekomendasi (opsional)
-        'photo_url',
+        'scan_result_id',
+        'area_name',
+        'confidence_score',
+        'label',
+        'description',
+        'advice',
+        'img_roi_area_id',
+        'img_roi_area_url',
+        'img_gradcam_id',
+        'img_gradcam_url',
     ];
 
     protected $casts = [
-        'score'    => 'decimal:5',
-        'criteria' => 'string',
-        'remarks'  => 'string',
+        'confidence_score' => 'float',
+        'area_name'        => 'string',
+        'label'            => 'string',
     ];
 
     public function result()
