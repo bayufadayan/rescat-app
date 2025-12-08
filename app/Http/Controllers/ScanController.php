@@ -476,7 +476,9 @@ class ScanController extends Controller
 
     private function performLandmarkDetection(ScanSession $session, ScanImage $image, ScanResult $result): array
     {
-        $sourceUrl = $image->img_roi_url ?? $image->img_original_url;
+        // Selalu gunakan gambar original untuk landmark agar akurasi lebih konsisten.
+        // Tetap fallback ke ROI hanya jika original tidak tersimpan (edge-case lama).
+        $sourceUrl = $image->img_original_url ?? $image->img_roi_url;
 
         if (!$sourceUrl) {
             throw new \RuntimeException('[LANDMARK] URL gambar original/ROI tidak tersedia.');
