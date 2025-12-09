@@ -134,11 +134,17 @@ export default function ScanProcess({ session }: ScanProcessProps) {
 
                 if (nextStatus === "processing") {
                     const detailCount = payload.data.result?.details?.length ?? 0;
-                    setStatusMessage(
-                        detailCount > 0
-                            ? "Menyiapkan ringkasan hasil …"
-                            : "Sedang menganalisis area detail …"
-                    );
+                    const hasDescription = payload.data.result?.details?.some(
+                        (d: { description?: string; advice?: string }) => d.description || d.advice
+                    ) ?? false;
+
+                    if (hasDescription) {
+                        setStatusMessage("Membuat ringkasan dan saran dengan AI …");
+                    } else if (detailCount > 0) {
+                        setStatusMessage("Mengklasifikasi area wajah kucing …");
+                    } else {
+                        setStatusMessage("Mendeteksi landmark wajah kucing …");
+                    }
                 }
 
                 if (nextStatus === "done" && !redirectRef.current) {

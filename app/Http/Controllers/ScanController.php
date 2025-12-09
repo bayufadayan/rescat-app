@@ -588,6 +588,10 @@ class ScanController extends Controller
         $result->remarks = $remarks;
         $result->save();
 
+        $this->generateDetailNarratives($result);
+
+        $result->load('details');
+
         return [
             'ok'             => true,
             'classification' => $classification,
@@ -597,6 +601,148 @@ class ScanController extends Controller
                 'remarks'        => $remarks,
             ],
         ];
+    }
+
+    private function generateDetailNarratives(ScanResult $result): void
+    {
+        $apiKey = config('services.groq.api_key') ?? env('GROQ_API_KEY');
+
+        if (!$apiKey) {
+            Log::info('Groq API key is missing. Skipping description/advice generation.');
+            return;
+        }
+
+        $details = $result->details ?? $result->details()->get();
+        $detailsCollection = $details instanceof \Illuminate\Support\Collection ? $details : collect($details);
+
+        $areasPayload = $detailsCollection->filter(function (ScanResultDetail $detail) {
+            return !empty($detail->label);
+        })->values();
+
+        if ($areasPayload->isEmpty()) {
+            return;
+        }
+
+        $lines = $areasPayload->map(function (ScanResultDetail $detail) {
+            $confidence = is_null($detail->confidence_score)
+                ? 'unknown'
+                : round($detail->confidence_score * 100);
+
+            return sprintf(
+                '- %s => label: %s, confidence: %s%s',
+                $detail->area_name,
+                strtoupper($detail->label ?? 'UNKNOWN'),
+                is_numeric($confidence) ? $confidence : $confidence,
+                is_numeric($confidence) ? '%' : ''
+            );
+        })->implode("\n");
+
+        $prompt = <<<PROMPT
+Anda adalah asisten AI kesehatan kucing. Setiap area wajah kucing di bawah ini sudah dianalisis oleh model internal dan memiliki label (misal NORMAL/ABNORMAL) beserta confidence (0-100%).
+
+Untuk setiap area:
+1. Buat deskripsi singkat (maksimal 2 kalimat) yang menjelaskan arti label tersebut dan sebutkan confidence dalam persen secara jelas.
+2. Berikan saran tindakan (maksimal 2 kalimat) yang aman dilakukan di rumah. Hindari obat, suntikan, atau tindakan invasif. Jika perlu konsultasi dokter hewan, tetap sertakan langkah aman di rumah.
+
+Tulis dalam Bahasa Indonesia yang mudah dipahami pemilik kucing. Kembalikan HANYA JSON valid dengan struktur:
+{
+  "areas": [
+    {"area": "left_eye", "description": "...", "advice": "..."}
+  ]
+}
+
+Data area:
+$lines
+PROMPT;
+
+        $endpoint = 'https://api.groq.com/openai/v1/chat/completions';
+
+        try {
+            $response = Http::timeout(30)
+                ->withHeaders([
+                    'Authorization' => 'Bearer ' . $apiKey,
+                    'Content-Type' => 'application/json',
+                ])
+                ->post($endpoint, [
+                    'model' => 'llama-3.3-70b-versatile',
+                    'messages' => [
+                        [
+                            'role' => 'system',
+                            'content' => 'Anda adalah asisten AI kesehatan kucing profesional. Berikan penjelasan medis yang akurat namun mudah dipahami pemilik kucing awam.',
+                        ],
+                        [
+                            'role' => 'user',
+                            'content' => $prompt,
+                        ],
+                    ],
+                    'temperature' => 0.7,
+                    'max_tokens' => 1000,
+                ]);
+        } catch (\Throwable $e) {
+            Log::warning('Groq request failed', [
+                'message' => $e->getMessage(),
+            ]);
+            return;
+        }
+
+        if (!$response->ok()) {
+            Log::warning('Groq response not OK', [
+                'status' => $response->status(),
+                'body'   => $response->body(),
+            ]);
+            return;
+        }
+
+        $text = $this->extractGroqText($response->json());
+
+        if (!$text) {
+            Log::warning('Groq did not return text payload.');
+            return;
+        }
+
+        $decoded = $this->decodeGroqJson($text);
+
+        if (!is_array($decoded) || empty($decoded['areas'])) {
+            Log::warning('Groq response missing areas block.');
+            return;
+        }
+
+        foreach ($decoded['areas'] as $areaBlock) {
+            $areaName = $areaBlock['area'] ?? null;
+            if (!$areaName) {
+                continue;
+            }
+
+            /** @var ScanResultDetail|null $detail */
+            $detail = $detailsCollection->firstWhere('area_name', $areaName);
+
+            if (!$detail) {
+                continue;
+            }
+
+            $detail->description = $areaBlock['description'] ?? $detail->description;
+            $detail->advice = $areaBlock['advice'] ?? $detail->advice;
+            $detail->save();
+        }
+    }
+
+    private function extractGroqText(array $body): ?string
+    {
+        return data_get($body, 'choices.0.message.content');
+    }
+
+    private function decodeGroqJson(string $text): ?array
+    {
+        $clean = trim($text);
+
+        if (str_starts_with($clean, '```')) {
+            $clean = preg_replace('/^```[a-zA-Z]*\n?/', '', $clean);
+            $clean = preg_replace('/```$/', '', $clean);
+        }
+
+        $decoded = json_decode($clean, true);
+
+        return json_last_error() === JSON_ERROR_NONE ? $decoded : null;
     }
 
     private function callFlask(string $relativePath, array $payload, int $timeout, string $stage): array
