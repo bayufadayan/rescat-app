@@ -21,7 +21,6 @@ export default function ScanProcess({ session }: ScanProcessProps) {
     const firstImage = session?.images?.[0];
     const rawOriginalUrl = firstImage?.img_original_url ?? null;
 
-    // Untuk tampilan (tambah ?cors=1 kalau perlu di FE)
     const originalUrl = useMemo(() => {
         if (!rawOriginalUrl) return undefined;
         return `${rawOriginalUrl}${rawOriginalUrl.includes("?") ? "&" : "?"}cors=1`;

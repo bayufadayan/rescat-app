@@ -12,7 +12,7 @@ Route::get('/onboarding', [AppStartController::class, 'onboarding'])->name('onbo
 Route::get('/thankyou', function () {
     return Inertia::render('thankyou/thankyou');
 })->name('thankyou');
-Route::prefix('scan')->group(function () {
+Route::prefix('scan')->middleware(['auth', 'user'])->group(function () {
     Route::get('/', [ScanController::class, 'index'])->name('scan');
     Route::get('/options', [ScanController::class, 'options'])->name('scan.options');
     Route::get('/capture', [ScanController::class, 'capture'])->name('scan.capture');
@@ -44,12 +44,12 @@ Route::prefix('articles')->group(function () {
 Route::middleware('guest')->group(function () {
     Route::get('/auth/google/redirect', [GoogleAuthController::class, 'redirect'])
         ->name('google.redirect');
-
-    Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])
-        ->name('google.callback');
 });
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])
+    ->name('google.callback');
+
+Route::middleware(['auth', 'verified', 'user'])->group(function () {
     Route::get('dashboard', function () {
         return Inertia::render('dashboard');
     })->name('dashboard');

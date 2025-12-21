@@ -84,10 +84,12 @@ class GoogleAuthController extends Controller
         Auth::login($user, remember: true);
         request()->session()->regenerate();
 
-        $redirect = $user->hasRole('admin')
-            ? route('admin.dashboard', absolute: false)
-            : route('dashboard', absolute: false);
+        // Admin harus full page load ke Filament, bukan Inertia redirect
+        if ($user->hasRole('admin')) {
+            return redirect()->away(route('filament.admin.pages.dashboard'));
+        }
 
-        return redirect()->intended($redirect);
+        // User biasa pakai Inertia redirect
+        return redirect()->intended(route('dashboard', absolute: false));
     }
 }

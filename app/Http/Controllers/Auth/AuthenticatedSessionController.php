@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Inertia\Response;
 use Laravel\Fortify\Features;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -28,7 +29,7 @@ class AuthenticatedSessionController extends Controller
     /**
      * Handle an incoming authentication request.
      */
-    public function store(LoginRequest $request): RedirectResponse
+    public function store(LoginRequest $request): SymfonyResponse
     {
         $user = $request->validateCredentials();
 
@@ -45,11 +46,11 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        $defaultRedirect = $user->hasRole('admin')
-            ? route('admin.dashboard', absolute: false)
-            : route('dashboard', absolute: false);
+        if ($user->hasRole('admin')) {
+            return Inertia::location(route('filament.admin.pages.dashboard'));
+        }
 
-        return redirect()->intended($defaultRedirect);
+        return redirect()->intended(route('dashboard', absolute: false));
     }
 
     /**
