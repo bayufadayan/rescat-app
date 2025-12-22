@@ -25,6 +25,7 @@ export default function ScanOptions() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [restrictOpen, setRestrictOpen] = useState(false);
   const [restrictReason, setRestrictReason] = useState<'full' | 'face-detail' | null>(null);
+  const [isStarting, setIsStarting] = useState(false);
 
   useEffect(() => {
     setDraftSelected(committedSelected);
@@ -62,6 +63,11 @@ export default function ScanOptions() {
     }
     setDraftScanType(t);
     setModalOpen(false);
+    
+    // Langsung buka bottom sheet karena sudah pasti valid (draftSelected sudah ada, t adalah scanType yang baru)
+    setTimeout(() => {
+      setSheetOpen(true);
+    }, 150);
   };
 
   const handleNext = () => {
@@ -75,7 +81,7 @@ export default function ScanOptions() {
   };
 
   const handleStartScan = () => {
-    if (!draftSelected || !draftScanType) return;
+    if (!draftSelected || !draftScanType || isStarting) return;
     if (draftSelected === 'full') {
       setRestrictReason('full');
       setRestrictOpen(true);
@@ -86,10 +92,16 @@ export default function ScanOptions() {
       setRestrictOpen(true);
       return;
     }
+    
+    setIsStarting(true);
     setCommittedSelected(draftSelected);
     setCommittedScanType(draftScanType);
-    const url = route('scan.capture');
-    window.location.href = url;
+    
+    // Delay sedikit untuk menunjukkan loading state
+    setTimeout(() => {
+      const url = route('scan.capture');
+      window.location.href = url;
+    }, 300);
   };
 
   const presetLabel = useMemo(() => getScanPresetLabel(draftSelected, draftScanType), [draftSelected, draftScanType]);
@@ -157,8 +169,20 @@ export default function ScanOptions() {
           )}
         </div>
         <div className="mt-5">
-          <Button type="button" onClick={handleStartScan} className="w-full py-5 font-semibold bg-[#0091F3] hover:bg-[#0a83da] text-white">
-            Start Scan
+          <Button 
+            type="button" 
+            onClick={handleStartScan} 
+            disabled={isStarting}
+            className={`w-full py-5 font-semibold transition-all duration-200 ${isStarting ? 'bg-[#0a83da] cursor-wait' : 'bg-[#0091F3] hover:bg-[#0a83da]'} text-white`}
+          >
+            {isStarting ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="h-4 w-4 border-2 border-white/60 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+                Loading...
+              </span>
+            ) : (
+              'Start Scan'
+            )}
           </Button>
         </div>
       </BottomSheet>
