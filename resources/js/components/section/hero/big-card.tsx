@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link } from '@inertiajs/react';
+import React, { useState } from 'react';
+import { router } from '@inertiajs/react';
 import { useRoute } from 'ziggy-js';
 
 export default function BigCard() {
@@ -9,6 +9,16 @@ export default function BigCard() {
         title: "Scan Foto Kucing",
         description: "Periksa foto kucing anda sekarang dengan teknologi AI yang terpercaya.",
         href: route('scan'),
+    }
+
+    const [loading, setLoading] = useState(false);
+
+    const handleClick = () => {
+        if (loading) return;
+        setLoading(true);
+        router.visit(data.href, {
+            onFinish: () => setLoading(false),
+        });
     }
 
     return (
@@ -41,16 +51,32 @@ export default function BigCard() {
                 </p>
             </div>
 
-            <Link
-                href={data.href}
-                className="mt-4 inline-flex items-center justify-center px-6 py-1.5 rounded-full border border-white bg-white/10 text-white font-semibold backdrop-blur-md"
+            <button
+                onClick={handleClick}
+                disabled={loading}
+                className={`relative mt-4 inline-flex items-center justify-center px-7 py-2 rounded-full border border-white/70 bg-white/10 text-white font-semibold backdrop-blur-md transition-all duration-250 overflow-hidden ${loading ? 'opacity-85 cursor-wait' : 'hover:scale-[1.03] hover:shadow-xl hover:bg-white/20'}`}
                 style={{
                     boxShadow:
                         "-2px -2px 10px 0 rgba(255, 255, 255, 0.25) inset, 2px 2px 10px 0 rgba(255, 255, 255, 0.25) inset",
                 }}
             >
-                Try Now
-            </Link>
+                {/* Soft neon blue ring */}
+                <span
+                    className="pointer-events-none absolute inset-[-3px] rounded-full bg-[conic-gradient(from_0deg,_rgba(59,130,246,0.4),_rgba(59,130,246,0.12),_rgba(59,130,246,0.4))] opacity-70 blur-[2px] animate-[spin_5s_linear_infinite]"
+                    aria-hidden
+                />
+                {/* Inner overlay to keep content crisp */}
+                <span className="absolute inset-[2px] rounded-full bg-black/5 backdrop-blur-sm" aria-hidden />
+
+                {loading ? (
+                    <span className="relative flex items-center gap-2 text-sm">
+                        <span className="h-4 w-4 border-2 border-white/70 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+                        Loading...
+                    </span>
+                ) : (
+                    <span className="relative text-lg">Try Now</span>
+                )}
+            </button>
         </div>
     )
 }
