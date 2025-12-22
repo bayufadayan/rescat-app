@@ -8,7 +8,7 @@ import { LogIn } from 'lucide-react';
 
 export default function Topbar() {
     const route = useRoute();
-    const { toggleSidebar } = useSidebar();
+    const { toggleSidebar, isOpen } = useSidebar();
     const [scrolled, setScrolled] = useState(false);
     const { auth } = usePage<{ auth: { user: any } }>().props;
 
@@ -47,7 +47,7 @@ export default function Topbar() {
                     // Guest: Simple Login Button
                     <Link
                         href={route('login')}
-                        className="group relative px-4 py-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 ease-out overflow-hidden"
+                        className={`${isOpen ? 'pointer-events-none opacity-0' : ''} group relative px-4 py-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 ease-out overflow-hidden`}
                     >
                         <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-blue-400 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
                         <span className="relative flex items-center gap-2 text-sm">

@@ -54,7 +54,7 @@ export default function BigCard() {
             <button
                 onClick={handleClick}
                 disabled={loading}
-                className={`relative mt-4 inline-flex items-center justify-center px-7 py-2 rounded-full border border-white/70 bg-white/10 text-white font-semibold backdrop-blur-md transition-all duration-250 overflow-hidden ${loading ? 'opacity-85 cursor-wait' : 'hover:scale-[1.03] hover:shadow-xl hover:bg-white/20'}`}
+                className={`relative mt-4 inline-flex items-center justify-center px-7 py-2 rounded-full border border-white/70 bg-white/10 text-white font-semibold backdrop-blur-md transition-all duration-250 overflow-hidden ${loading ? 'opacity-85 cursor-wait' : 'hover:scale-[1.03] hover:shadow-xl hover:bg-white/20 cursor-pointer'}`}
                 style={{
                     boxShadow:
                         "-2px -2px 10px 0 rgba(255, 255, 255, 0.25) inset, 2px 2px 10px 0 rgba(255, 255, 255, 0.25) inset",

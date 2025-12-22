@@ -33,13 +33,11 @@ export default function Login({ status, canResetPassword }: LoginProps) {
         }
     }, [status]);
 
-    // Clear guest seed setelah berhasil login
     useEffect(() => {
         return () => {
-            const timer = setTimeout(() => {
+            setTimeout(() => {
                 clearGuestAvatarSeed();
             }, 1000);
-            return () => clearTimeout(timer);
         };
     }, []);
 
@@ -53,7 +51,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                 resetOnSuccess={['password']}
                 transform={(data) => ({
                     ...data,
-                    avatar_seed: getGuestAvatarSeed(), // Kirim seed jika user belum punya avatar
+                    avatar_seed: getGuestAvatarSeed(),
                 })}
                 className="flex flex-col gap-6 w-full ">
                 {({ processing, errors }) => (

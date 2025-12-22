@@ -12,7 +12,7 @@ Route::get('/onboarding', [AppStartController::class, 'onboarding'])->name('onbo
 Route::get('/thankyou', function () {
     return Inertia::render('thankyou/thankyou');
 })->name('thankyou');
-Route::prefix('scan')->middleware(['auth', 'user'])->group(function () {
+Route::prefix('scan')->group(function () {
     Route::get('/', [ScanController::class, 'index'])->name('scan');
     Route::get('/options', [ScanController::class, 'options'])->name('scan.options');
     Route::get('/capture', [ScanController::class, 'capture'])->name('scan.capture');

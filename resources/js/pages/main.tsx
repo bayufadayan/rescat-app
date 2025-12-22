@@ -1,3 +1,4 @@
+"use client";
 import React from 'react';
 import AppLayout from '@/layouts/app-layout';
 import HeroSection from '@/components/section/hero/hero';
@@ -6,6 +7,7 @@ import HistoryPreview from '@/components/section/history-preview/history-preview
 import Navigation from '@/components/main/navigation/navigation';
 
 export default function MainPage() {
+
     return (
         <AppLayout>
             <HeroSection />

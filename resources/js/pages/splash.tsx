@@ -9,7 +9,7 @@ export default function Splash() {
             router.post('/set-splash', {}, {
                 onSuccess: () => router.visit('/')
             })
-        }, 2000)
+        }, 1200)
 
         return () => clearTimeout(timer)
     }, [])
