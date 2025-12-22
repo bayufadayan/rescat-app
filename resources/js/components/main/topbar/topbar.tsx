@@ -1,15 +1,16 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+"use client";
 import React, { useEffect, useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import { useSidebar } from "@/contexts/SidebarContext";
 import { useRoute } from 'ziggy-js';
+import { LogIn } from 'lucide-react';
 
 export default function Topbar() {
     const route = useRoute();
     const { toggleSidebar } = useSidebar();
     const [scrolled, setScrolled] = useState(false);
-    const page = usePage();
-    // `auth.user` follows Inertia shared props convention
-    const user = (page.props as any).auth?.user ?? null;
+    const { auth } = usePage<{ auth: { user: any } }>().props;
 
     useEffect(() => {
         const handleScroll = () => {
@@ -41,26 +42,34 @@ export default function Topbar() {
                     </figure>
                 </Link>
 
-                <div className="w-10 h-full flex items-center justify-center">
-                    {/* If not logged in, show Login CTA with subtle pulse animation */}
-                    {!user ? (
-                        <Link
-                            href={route('login')}
-                            className="inline-flex items-center justify-center px-3 py-1.5 rounded-full bg-white border border-gray-200 text-sm font-medium text-gray-800 shadow-sm hover:shadow-md transform transition-all duration-200 ease-in-out motion-safe:animate-pulse"
-                        >
+                {/* Conditional button: Login for guests, Premium for logged-in users */}
+                {!auth?.user ? (
+                    // Guest: Simple Login Button
+                    <Link
+                        href={route('login')}
+                        className="group relative px-4 py-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 ease-out overflow-hidden"
+                    >
+                        <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-blue-400 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                        <span className="relative flex items-center gap-2 text-sm">
+                            <LogIn className="w-4 h-4 animate-pulse" />
                             Login
-                        </Link>
-                    ) : (
-                        /* Logged-in users see animated Premium button */
-                        <Link
-                            href={route('pricing')}
-                            className="inline-flex items-center justify-center px-3 py-1.5 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 text-white text-sm font-semibold shadow-md hover:shadow-xl transform transition-all duration-200 ease-in-out hover:-translate-y-0.5 motion-safe:animate-[pulse_2.2s_infinite]"
-                        >
-                            <img src="/images/icon/premium-button.svg" alt="Premium" className="h-5 w-auto mr-2" />
-                            Premium
-                        </Link>
-                    )}
-                </div>
+                        </span>
+                    </Link>
+                ) : (
+                    // Logged-in: Premium Button with original icon
+                    <Link
+                        href={route('dashboard')}
+                        className="w-10 h-full hover:scale-110 transition-transform duration-200"
+                    >
+                        <figure className="flex justify-center items-center h-full">
+                            <img 
+                                src="/images/icon/premium-button.svg" 
+                                alt="Premium" 
+                                className="h-full w-auto object-contain hover:drop-shadow-lg transition-all duration-200" 
+                            />
+                        </figure>
+                    </Link>
+                )}
             </div>
         </nav>
     )
