@@ -14,9 +14,22 @@ import { LoaderCircle } from "lucide-react";
 import { MdAlternateEmail } from "react-icons/md";
 import { cn } from "@/lib/utils";
 import { useRoute } from 'ziggy-js';
+import { getGuestAvatarSeed, clearGuestAvatarSeed } from '@/lib/avatar-utils';
+import { useEffect } from 'react';
 
 export default function Signup() {
     const route = useRoute();
+
+    // Clear guest seed setelah berhasil register
+    useEffect(() => {
+        return () => {
+            // Cleanup ketika unmount setelah register sukses
+            const timer = setTimeout(() => {
+                clearGuestAvatarSeed();
+            }, 1000);
+            return () => clearTimeout(timer);
+        };
+    }, []);
 
     return (
         <AuthLayout
@@ -27,6 +40,16 @@ export default function Signup() {
                 {...RegisteredUserController.store.form()}
                 resetOnSuccess={['password', 'password_confirmation']}
                 disableWhileProcessing
+                onBefore={() => {
+                    // Inject avatar seed sebelum submit
+                    const seed = getGuestAvatarSeed();
+                    // Set via transform di form data
+                    return true;
+                }}
+                transform={(data) => ({
+                    ...data,
+                    avatar_seed: getGuestAvatarSeed(), // Kirim seed ke backend
+                })}
                 className="flex flex-col gap-6 w-full ">
                 {({ processing, errors }) => (
                     <div className="flex flex-col w-full gap-8">

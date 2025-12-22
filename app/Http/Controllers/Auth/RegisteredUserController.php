@@ -36,6 +36,7 @@ class RegisteredUserController extends Controller
             'name'     => ['required', 'string', 'max:255'],
             'email'    => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'avatar_seed' => ['nullable', 'string', 'max:50'], // Guest avatar seed dari localStorage
         ]);
 
         $user = DB::transaction(function () use ($validated) {
@@ -45,6 +46,7 @@ class RegisteredUserController extends Controller
                 'name'     => $validated['name'],
                 'email'    => strtolower($validated['email']),
                 'password' => Hash::make($validated['password']),
+                'avatar'   => $validated['avatar_seed'] ?? null, // Simpan seed sebagai avatar
             ]);
 
             $user->assignRole($roleUser);

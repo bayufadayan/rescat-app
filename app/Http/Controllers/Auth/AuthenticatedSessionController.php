@@ -42,6 +42,13 @@ class AuthenticatedSessionController extends Controller
             return to_route('two-factor.login');
         }
 
+        // Simpan avatar seed jika user belum punya avatar
+        if (!$user->avatar && $request->has('avatar_seed')) {
+            $user->update([
+                'avatar' => $request->input('avatar_seed')
+            ]);
+        }
+
         Auth::login($user, $request->boolean('remember'));
 
         $request->session()->regenerate();

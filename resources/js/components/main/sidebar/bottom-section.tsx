@@ -4,13 +4,50 @@ import { login } from '@/routes';
 import { FaGoogle } from "react-icons/fa";
 import { Button } from '@/components/ui/button';
 import TextLink from '@/components/text-link';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { useRoute } from 'ziggy-js';
-// import { LoaderCircle } from "lucide-react";
+import { LogOut } from 'lucide-react';
+
+type User = {
+    id: string;
+    name: string;
+    email: string;
+    avatar: string | null;
+};
+
+type PageProps = {
+    auth: {
+        user: User | null;
+    };
+};
 
 export default function BottomSection() {
     const route = useRoute();
+    const { auth } = usePage<PageProps>().props;
+    const user = auth?.user;
 
+    const handleLogout = () => {
+        router.post(route('logout'));
+    };
+
+    // Jika sudah login, tampilkan tombol Logout
+    if (user) {
+        return (
+            <div className="flex flex-col gap-2 px-2">
+                <Button
+                    type="button"
+                    onClick={handleLogout}
+                    className="w-full bg-red-500 hover:bg-red-600 text-white py-5 flex items-center justify-center gap-2"
+                    tabIndex={5}
+                >
+                    <LogOut size={18} />
+                    Logout
+                </Button>
+            </div>
+        );
+    }
+
+    // Jika belum login, tampilkan Sign up & Login
     return (
         <div className="flex flex-col gap-2 px-2">
             <Button
@@ -19,7 +56,6 @@ export default function BottomSection() {
                 tabIndex={5}
                 onClick={() => { router.visit('register') }}
             >
-                {/* <LoaderCircle className="h-4 w-4 animate-spin" /> */}
                 Sign up
             </Button>
 
@@ -41,5 +77,5 @@ export default function BottomSection() {
                 </TextLink>
             </div>
         </div>
-    )
+    );
 }
