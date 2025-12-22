@@ -23,6 +23,9 @@ export default function ScanCapture() {
     const [error, setError] = useState<string>('');
     const [lastShot, setLastShot] = useState<string | null>(null);
 
+    const [captureBusy, setCaptureBusy] = useState(false);
+    const [captureStep, setCaptureStep] = useState<"capture" | "upload">("capture");
+
     const { supported, torchOn, setTorch, refreshSupport } = useTorch(webcamRef);
 
     const handleMediaReady = (): void => {
@@ -31,53 +34,52 @@ export default function ScanCapture() {
     };
 
     const handleCapture = useCallback(async (): Promise<void> => {
+        if (captureBusy) return;
+
         const video: HTMLVideoElement | undefined = webcamRef.current?.video as HTMLVideoElement | undefined;
         const container = containerRef.current;
         const frame = frameRef.current;
         if (!video || !container || !frame) return;
         if (video.videoWidth === 0 || video.videoHeight === 0) return;
 
-        const containerRect = container.getBoundingClientRect();
-        const frameRect = frame.getBoundingClientRect();
-
-        const { sx, sy, sw, sh } = computeCropFromOverlay({
-            containerRect,
-            frameRect,
-            videoWidth: video.videoWidth,
-            videoHeight: video.videoHeight,
-        });
-
-        // Render area video → square 720
-        const squareCanvas = drawToSquareCanvas(video, sx, sy, Math.round(sw), Math.round(sh), 720);
-
-        // Blob awal (kualitas tinggi), lalu kompres ≤ 500KB
-        const initialBlob = await canvasToBlob(squareCanvas, "image/jpeg", 0.92);
-        const result = await compressWithBackoff(initialBlob, 500);
-
-        // Preview utk UI (pakai URL server nanti, sementara tampilkan hasil lokal dulu)
-        const previewDataUrl = result.dataUrl;
-        setLastShot(previewDataUrl);
-
-        const meta = {
-            width: result.width,
-            height: result.height,
-            mime: result.mime,
-            quality: result.quality,
-            sizeBytes: result.sizeBytes,
-            createdAt: new Date().toISOString(),
-            source: "camera",
-        };
-
         try {
-            // siapkan File untuk upload (dari dataUrl hasil kompres)
+            setCaptureBusy(true);
+            setCaptureStep("capture");
+
+            const containerRect = container.getBoundingClientRect();
+            const frameRect = frame.getBoundingClientRect();
+
+            const { sx, sy, sw, sh } = computeCropFromOverlay({
+                containerRect,
+                frameRect,
+                videoWidth: video.videoWidth,
+                videoHeight: video.videoHeight,
+            });
+
+            const squareCanvas = drawToSquareCanvas(video, sx, sy, Math.round(sw), Math.round(sh), 720);
+            const initialBlob = await canvasToBlob(squareCanvas, "image/jpeg", 0.92);
+            const result = await compressWithBackoff(initialBlob, 500);
+
+            const previewDataUrl = result.dataUrl;
+            setLastShot(previewDataUrl);
+
+            const meta = {
+                width: result.width,
+                height: result.height,
+                mime: result.mime,
+                quality: result.quality,
+                sizeBytes: result.sizeBytes,
+                createdAt: new Date().toISOString(),
+                source: "camera",
+            };
+
+            setCaptureStep("upload");
+
             const filename = `shot-${Date.now()}.jpg`;
             const file = dataUrlToFile(previewDataUrl, filename, result.mime || "image/jpeg");
 
-            // upload → storage.rescat.life (FormData: bucket dulu, lalu file)
             const uploaded = await uploadToContent(file, "original-photo");
-            // uploaded: { id, bucket, filename, originalName, mime, size, createdAt, url }
 
-            // simpan ke localStorage (ID & URL; tanpa base64)
             localStorage.setItem(
                 "scan:original",
                 JSON.stringify({
@@ -92,16 +94,15 @@ export default function ScanCapture() {
             );
             localStorage.setItem("scan:meta", JSON.stringify(meta));
 
-            // gunakan URL server untuk preview (opsional, agar konsisten)
             setLastShot(uploaded.url);
 
-            // lanjut ke halaman berikutnya
             window.location.href = route("scan.details");
         } catch (e) {
             console.error(e);
             alert("Gagal mengunggah gambar. Coba ulangi.");
+            setCaptureBusy(false);
         }
-    }, [route]);
+    }, [route, captureBusy]);
 
     const flipCamera = (): void => setFront((p) => !p);
 
@@ -119,7 +120,7 @@ export default function ScanCapture() {
                 />
             </div>
 
-            <div className="p-0 w-full h-screen">
+            <div className="relative p-0 w-full h-screen">
                 <CameraStage
                     webcamRef={webcamRef}
                     frameRef={frameRef}
@@ -129,12 +130,32 @@ export default function ScanCapture() {
                     onUserMedia={handleMediaReady}
                     onUserMediaError={(e) => setError(typeof e === 'string' ? e : (e as Error)?.message ?? 'Camera error')}
                 />
+
+                {captureBusy && (
+                    <div className="absolute inset-0 z-30 grid place-items-center bg-black/35 backdrop-blur-[2px]">
+                        <div className="w-[85%] max-w-sm rounded-2xl border border-white/20 bg-white/10 px-5 py-4 text-white shadow-lg">
+                            <div className="flex items-center gap-3">
+                                <span className="h-6 w-6 rounded-full border-2 border-white/70 border-t-transparent animate-spin" aria-hidden="true" />
+                                <div className="flex flex-col">
+                                    <span className="text-sm font-semibold">
+                                        {captureStep === "capture" ? "Sedang mengambil gambar" : "Sedang mengunggah foto"}
+                                    </span>
+                                    <span className="text-xs text-white/80">
+                                        {captureStep === "capture"
+                                            ? "Tahan posisi dan jangan bergerak..."
+                                            : "Sebentar ya, sedang memproses..."}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
 
             <WarningBanner>Pastikan wajah kucing terlihat pada kotak terang.</WarningBanner>
 
             <div className="absolute inset-x-0 bottom-6 z-20 flex w-full h-16 justify-center items-center">
-                <BottomBar onCapture={handleCapture} onFlip={flipCamera} lastShot={lastShot} />
+                <BottomBar onCapture={handleCapture} onFlip={flipCamera} lastShot={lastShot} capturing={captureBusy} />
             </div>
 
             {error && (
