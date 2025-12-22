@@ -56,7 +56,7 @@ export default function ScanCapture() {
                 videoHeight: video.videoHeight,
             });
 
-            const squareCanvas = drawToSquareCanvas(video, sx, sy, Math.round(sw), Math.round(sh), 720);
+            const squareCanvas = drawToSquareCanvas(video, sx, sy, Math.round(sw), Math.round(sh), 1000);
             const initialBlob = await canvasToBlob(squareCanvas, "image/jpeg", 0.92);
             const result = await compressWithBackoff(initialBlob, 500);
 

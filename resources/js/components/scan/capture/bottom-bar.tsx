@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useRoute } from 'ziggy-js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 type BottomBarProps = {
     onCapture: () => void;
@@ -16,6 +18,9 @@ export default function BottomBar({ onCapture, onFlip, lastShot, capturing }: Bo
     const [shake, setShake] = useState(false);
     const [flipAnim, setFlipAnim] = useState(false);
     const [justCaptured, setJustCaptured] = useState(false);
+    const [showSizeModal, setShowSizeModal] = useState(false);
+    const [actualSize, setActualSize] = useState({ width: 0, height: 0 });
+    const [galleryLoading, setGalleryLoading] = useState(false);
 
     const openFile = () => {
         if (navigator.vibrate) navigator.vibrate(8);
@@ -26,13 +31,27 @@ export default function BottomBar({ onCapture, onFlip, lastShot, capturing }: Bo
         const f = e.target.files?.[0];
         if (!f) return;
 
+        setGalleryLoading(true);
         const reader = new FileReader();
         reader.onload = () => {
-            try {
-                sessionStorage.setItem('scan:toCrop', String(reader.result));
-            } catch { /* Error State */}
-            window.location.href = route('scan.crop');
+            const img = new Image();
+            img.onload = () => {
+                const minSize = 700;
+                if (Math.max(img.width, img.height) < minSize) {
+                    setActualSize({ width: img.width, height: img.height });
+                    setShowSizeModal(true);
+                    setGalleryLoading(false);
+                    return;
+                }
+                try {
+                    sessionStorage.setItem('scan:toCrop', String(reader.result));
+                } catch { /* Error State */}
+                window.location.href = route('scan.crop');
+            };
+            img.onerror = () => setGalleryLoading(false);
+            img.src = String(reader.result);
         };
+        reader.onerror = () => setGalleryLoading(false);
         reader.readAsDataURL(f);
     };
 
@@ -86,12 +105,14 @@ export default function BottomBar({ onCapture, onFlip, lastShot, capturing }: Bo
                     <button
                         type="button"
                         onClick={openFile}
+                        disabled={galleryLoading}
                         className={[
                             "group relative grid h-12 w-12 place-items-center rounded-xl",
                             "bg-white/10 border border-white/20 backdrop-blur-sm",
                             "transition-all duration-200 ease-out",
                             "hover:bg-white/15 hover:border-white/30",
                             "active:scale-[0.94] active:translate-y-[1px]",
+                            galleryLoading ? "opacity-50 cursor-not-allowed" : "",
                         ].join(" ")}
                         aria-label="Buka galeri"
                     >
@@ -102,7 +123,11 @@ export default function BottomBar({ onCapture, onFlip, lastShot, capturing }: Bo
                             }}
                             aria-hidden
                         />
-                        <img src="/images/icon/gallery-icon.svg" alt="gallery-icon" className="relative" />
+                        {galleryLoading ? (
+                            <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white" />
+                        ) : (
+                            <img src="/images/icon/gallery-icon.svg" alt="gallery-icon" className="relative" />
+                        )}
                     </button>
                 </div>
 
@@ -175,6 +200,26 @@ export default function BottomBar({ onCapture, onFlip, lastShot, capturing }: Bo
                     />
                 </button>
             </div>
-        </>
+            {/* Size validation modal */}
+            <Dialog open={showSizeModal} onOpenChange={setShowSizeModal}>
+                <DialogContent className="bg-neutral-900 border-white/20 text-white max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle className="text-lg font-semibold">Ukuran Gambar Terlalu Kecil</DialogTitle>
+                        <DialogDescription className="text-white/70 text-sm mt-2">
+                            Gambar yang dipilih memiliki resolusi {actualSize.width} × {actualSize.height}px.
+                            <br /><br />
+                            Minimal resolusi yang dibutuhkan adalah <span className="font-semibold text-cyan-400">700px</span> pada salah satu sisi untuk hasil scan yang optimal.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            onClick={() => setShowSizeModal(false)}
+                            className="w-full h-10 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500"
+                        >
+                            Mengerti
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>        </>
     );
 }
