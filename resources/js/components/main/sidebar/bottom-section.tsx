@@ -47,7 +47,6 @@ export default function BottomSection() {
         );
     }
 
-    // Jika belum login, tampilkan Sign up & Login
     return (
         <div className="flex flex-col gap-2 px-2">
             <Button
