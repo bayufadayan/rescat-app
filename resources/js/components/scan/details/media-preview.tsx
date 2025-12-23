@@ -109,10 +109,10 @@ export default function MediaPreview({ phase = "idle", errorMsg = "" }: Props) {
     const hasMultipleImages = images.length > 1;
 
     return (
-        <div className="w-full md:max-w-2xl max-w-full pt-0 relative">
+        <div className="w-full md:max-w-2xl max-w-full pt-0 relative flex flex-col min-h-full bg-red-500 lg:mt-8">
             {/* VERDICT OVERLAY */}
             <div
-                className="h-20 w-20 absolute left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full z-20 shrink-0 grow-0 border-8 border-white grid place-items-center transition-all duration-300"
+                className="h-20 w-20 absolute left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full z-20 shrink-0 grow-0 border-8 border-white transition-all duration-300"
                 style={{
                     top: "0",
                     background:
@@ -136,10 +136,10 @@ export default function MediaPreview({ phase = "idle", errorMsg = "" }: Props) {
             </div>
 
             {/* IMAGE CARD WITH SLIDER */}
-            <div className="w-fit h-auto bg-white border-8 border-white rounded-3xl overflow-hidden p-1 mx-auto max-w-[350px] md:max-w-lg shadow">
-                <div className="relative overflow-hidden rounded-2xl bg-neutral-200">
+            <div className="w-full aspect-square bg-white border-8 border-white rounded-3xl overflow-hidden p-1 mx-auto max-w-[350px] md:max-w-[420px] shadow-xl">
+                <div className="relative w-full h-full overflow-hidden rounded-2xl bg-neutral-200">
                     {/* Image Slider Container */}
-                    <div className="relative h-[360px] w-full overflow-hidden">
+                    <div className="relative w-full h-full overflow-hidden">
                         <div 
                             className="flex h-full transition-transform duration-500 ease-out"
                             style={{ transform: `translateX(-${currentImageIndex * 100}%)` }}
@@ -149,7 +149,7 @@ export default function MediaPreview({ phase = "idle", errorMsg = "" }: Props) {
                                     <img 
                                         src={img} 
                                         alt={idx === 0 ? "Original" : "Bounding Box"} 
-                                        className="h-full w-full object-cover" 
+                                        className="h-full w-full object-contain" 
                                     />
                                 </div>
                             ))}
@@ -271,7 +271,7 @@ export default function MediaPreview({ phase = "idle", errorMsg = "" }: Props) {
                     >
                         {okRes.can_proceed ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
                         <span className="font-medium">
-                            {okRes.message}
+                            Terdeteksi {okRes.faces?.faces_count ?? 0} wajah kucing{okRes.faces?.faces_count === 1 ? "" : ""}
                         </span>
                     </div>
                 )}
