@@ -78,11 +78,6 @@ export default function MediaPreview({ phase = "idle", errorMsg = "" }: Props) {
         return "idle" as const;
     }, [phase, okRes]);
 
-    const probText = useMemo(() => {
-        const p = okRes?.recognize?.cat_prob;
-        return typeof p === "number" ? `p=${p.toFixed(2)}` : "";
-    }, [okRes?.recognize?.cat_prob]);
-
     function formatBytes(bytes: number) {
         if (!Number.isFinite(bytes) || bytes <= 0) return "–";
         const units = ["B", "KB", "MB", "GB"];
@@ -277,8 +272,6 @@ export default function MediaPreview({ phase = "idle", errorMsg = "" }: Props) {
                         {okRes.can_proceed ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
                         <span className="font-medium">
                             {okRes.message}
-                            {okRes.recognize?.label ? ` • label=${okRes.recognize.label}` : ""}
-                            {probText ? ` • ${probText}` : ""}
                         </span>
                     </div>
                 )}

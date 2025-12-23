@@ -240,8 +240,10 @@ export default function ScanDetails() {
             <div className="w-full justify-between min-h-dvh relative z-10">
                 <div className="flex w-full h-full flex-col justify-center items-center lg:flex-row lg:items-start lg:justify-center px-4 pt-16 lg:px-0 lg:pt-0">
                     {/* Left / main visual */}
-                    <div className="flex-1 flex items-center justify-center h-full">
-                        <MediaPreview phase={phase} errorMsg={errorMsg} />
+                    <div className="flex-1 w-full lg:h-screen lg:overflow-y-auto flex items-start justify-center">
+                        <div className="w-full lg:px-6 lg:py-8">
+                            <MediaPreview phase={phase} errorMsg={errorMsg} />
+                        </div>
                     </div>
 
                     {isMobile && (
