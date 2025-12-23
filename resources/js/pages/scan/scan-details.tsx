@@ -17,7 +17,7 @@ import type { CatApiResponse } from "@/types/scan";
 import { useRoute } from "ziggy-js";
 
 /*=============== GLOBAL STATE ===============*/
-type Phase = "idle" | "uploading" | "analyzing" | "success" | "fail";
+type Phase = "idle" | "uploading" | "analyzing" | "success" | "noncat" | "fail";
 
 type StoredOriginal = {
     id: string;
@@ -170,7 +170,9 @@ export default function ScanDetails() {
                 return;
             }
 
-            setPhase("success");
+            // Check if cat detected (can_proceed)
+            const canProceed = (data as any)?.can_proceed ?? false;
+            setPhase(canProceed ? "success" : "noncat");
             sessionStorage.setItem("scan:result", JSON.stringify(data));
 
             try {

@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { ChevronDown, Check, X, AlertTriangle, Info, Loader2 } from "lucide-react";
 import type { CatApiResponse, CatApiSuccessV1 } from "@/types/scan";
 
-type Phase = "idle" | "uploading" | "analyzing" | "success" | "fail";
+type Phase = "idle" | "uploading" | "analyzing" | "success" | "noncat" | "fail";
 type Props = { phase?: Phase; errorMsg?: string };
 
 type StoredOriginal = {
@@ -61,7 +61,7 @@ export default function MediaPreview({ phase = "idle", errorMsg = "" }: Props) {
         }
     }, [phase]);
 
-    // Auto slide ke bounding box saat sukses
+    // Auto slide ke bounding box saat sukses (mendeteksi kucing)
     useEffect(() => {
         if (phase === "success" && boundingBoxUrl) {
             setCurrentImageIndex(1);
@@ -74,6 +74,7 @@ export default function MediaPreview({ phase = "idle", errorMsg = "" }: Props) {
     const verdict = useMemo(() => {
         if (phase === "uploading" || phase === "analyzing") return "loading" as const;
         if (phase === "fail") return "fail" as const;
+        if (phase === "noncat") return "noncat" as const;
         if (okRes) return okRes.can_proceed ? ("cat" as const) : ("noncat" as const);
         return "idle" as const;
     }, [phase, okRes]);
@@ -136,7 +137,7 @@ export default function MediaPreview({ phase = "idle", errorMsg = "" }: Props) {
             </div>
 
             {/* IMAGE CARD WITH SLIDER */}
-            <div className="w-full aspect-square bg-white border-8 border-white rounded-3xl overflow-hidden p-1 mx-auto max-w-[350px] md:max-w-[420px] shadow-xl">
+            <div className="w-full aspect-square bg-white border-8 border-white rounded-3xl overflow-hidden p-1 mx-auto max-w-[350px] md:max-w-[420px] shadow-xl -mt-4 lg:mt-0">
                 <div className="relative w-full h-full overflow-hidden rounded-2xl bg-neutral-200">
                     {/* Image Slider Container */}
                     <div className="relative w-full h-full overflow-hidden">
@@ -356,7 +357,7 @@ export default function MediaPreview({ phase = "idle", errorMsg = "" }: Props) {
             {okRes && (
                 <button
                     onClick={() => setSummaryVisible(!summaryVisible)}
-                    className={`${summaryVisible ? "animate-bounce mt-4" : "mt-0"} mx-auto flex items-center justify-center`}
+                    className={`${summaryVisible ? "animate-bounce mt-4" : "mt-0"} mx-auto flex items-center justify-center mb-16 lg:mb-8`}
                 >
                     <div className="grid place-items-center rounded-full bg-white shadow-md px-2 py-0 hover:shadow-lg transition-shadow cursor-pointer">
                         <ChevronDown 

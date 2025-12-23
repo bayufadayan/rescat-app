@@ -51,11 +51,10 @@ const BottomForm: React.FC<Props> = ({
     }, []);
 
     const buildRoute = useCallback(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (name: string, params?: any) => toRelativeUrl(route(name as any, params as any) as unknown as string),
         [route, toRelativeUrl]
     );
-    const snapPoints: number[] = [0.25, 0.65, 1];
+    const snapPoints: number[] = [0.15, 0.6, 1];
     const [activeSnap, setActiveSnap] = useState<number | null>(snapPoints[0]);
     const maxSnap = snapPoints[snapPoints.length - 1];
 
