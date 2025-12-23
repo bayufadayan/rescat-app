@@ -221,8 +221,23 @@ export default function ScanDetails() {
     }, [analyzeOnce]);
 
     return (
-        <div className="min-h-dvh w-full bg-[#0da0ff] text-slate-900 flex justify-center">
-            <div className="w-full justify-between min-h-dvh">
+        <div className="min-h-dvh w-full bg-[#0da0ff] text-slate-900 flex justify-center relative overflow-hidden">
+            {/* Background Pattern */}
+            <div className="absolute inset-0 opacity-30">
+                <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                            <circle cx="20" cy="20" r="1.5" fill="white" />
+                        </pattern>
+                    </defs>
+                    <rect width="100%" height="100%" fill="url(#grid)" />
+                </svg>
+            </div>
+
+            {/* Gradient Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 via-transparent to-cyan-500/20" />
+
+            <div className="w-full justify-between min-h-dvh relative z-10">
                 <div className="flex w-full h-full flex-col justify-center items-center lg:flex-row lg:items-start lg:justify-center px-4 pt-16 lg:px-0 lg:pt-0">
                     {/* Left / main visual */}
                     <div className="flex-1 flex items-center justify-center h-full">
@@ -240,12 +255,13 @@ export default function ScanDetails() {
                                 updatedAt={updatedAt}
                                 refreshLocation={askLocation}
                                 clearLocation={clearLocation}
+                                phase={phase}
                             />
                         </div>
                     )}
 
                     {!isMobile && (
-                        <div className="hidden md:flex flex-1 justify-center items-center">
+                        <div className="hidden md:flex justify-end items-start h-screen sticky top-0">
                             <SideForm
                                 status={geoStatus}
                                 coords={coords}
@@ -253,6 +269,7 @@ export default function ScanDetails() {
                                 updatedAt={updatedAt}
                                 refreshLocation={askLocation}
                                 clearLocation={clearLocation}
+                                phase={phase}
                             />
                         </div>
                     )}

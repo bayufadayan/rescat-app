@@ -18,6 +18,7 @@ type Props = {
     updatedAt: Date | null;
     refreshLocation: () => void;
     clearLocation: () => void;
+    phase?: string;
 };
 
 const BottomForm: React.FC<Props> = ({
@@ -29,12 +30,14 @@ const BottomForm: React.FC<Props> = ({
     updatedAt,
     refreshLocation,
     clearLocation,
+    phase,
 }) => {
     const [anonymous, setAnonymous] = useState(true);
     const [name, setName] = useState("");
     const [notes, setNotes] = useState("");
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
+    const [forceCheck, setForceCheck] = useState(false);
     const route = useRoute();
     const toRelativeUrl = useCallback((url: string) => {
         if (!url) return url;
@@ -48,10 +51,11 @@ const BottomForm: React.FC<Props> = ({
     }, []);
 
     const buildRoute = useCallback(
-        (name: string, params?: unknown) => toRelativeUrl(route(name, params)),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (name: string, params?: any) => toRelativeUrl(route(name as any, params as any) as unknown as string),
         [route, toRelativeUrl]
     );
-    const snapPoints: number[] = [0.22, 0.6, 0.96];
+    const snapPoints: number[] = [0.25, 0.65, 1];
     const [activeSnap, setActiveSnap] = useState<number | null>(snapPoints[0]);
     const maxSnap = snapPoints[snapPoints.length - 1];
 
@@ -90,19 +94,23 @@ const BottomForm: React.FC<Props> = ({
             activeSnapPoint={activeSnap}
             setActiveSnapPoint={handleSetActiveSnapPoint}
             snapToSequentialPoint
-            fadeFromIndex={1}
+            fadeFromIndex={2}
         >
-            <Drawer.Overlay className="fixed inset-0 bg-black/20" />
-
             <Drawer.Portal>
-                <Drawer.Content className="fixed inset-x-0 bottom-0 z-[60] mx-auto w-full max-w-[480px] h-[96dvh] rounded-t-3xl bg-white shadow-2xl">
-                    <div className="pt-2">
-                        <Drawer.Handle />
+                <Drawer.Content className="fixed inset-x-0 bottom-0 z-[60] mx-auto w-full max-w-[480px] h-[100dvh] rounded-t-3xl bg-white shadow-2xl focus:outline-none">
+                    {/* Handle Bar */}
+                    <div className="pt-3 pb-2 flex justify-center">
+                        <div className="w-12 h-1.5 rounded-full bg-slate-300" />
                     </div>
 
+                    {/* Scrollable Content */}
                     <div
                         ref={scrollRef}
-                        className="overscroll-contain max-h-[calc(96dvh-120px)] overflow-y-auto px-4 pb-28 pt-2"
+                        className="overscroll-contain h-[calc(100dvh-180px)] overflow-y-auto px-5 pb-4"
+                        style={{
+                            scrollbarWidth: "thin",
+                            scrollbarColor: "#cbd5e1 transparent",
+                        }}
                         onScroll={(e: UIEvent<HTMLDivElement>) => {
                             const isAtTop = e.currentTarget.scrollTop <= 0;
                             setAtTop(isAtTop);
@@ -117,9 +125,7 @@ const BottomForm: React.FC<Props> = ({
                             if ((activeSnap ?? snapPoints[0]) < maxSnap) handleSetActiveSnapPoint(maxSnap);
                         }}
                     >
-                        <div className="mx-auto mb-2 h-1 w-20 rounded-full bg-slate-200" hidden />
-
-                        <h3 className="text-center text-[15px] font-semibold text-slate-800">
+                        <h3 className="text-center text-base font-semibold text-slate-800 mb-5">
                             Tolong lengkapi informasi di bawah ini
                         </h3>
 
@@ -139,7 +145,7 @@ const BottomForm: React.FC<Props> = ({
                             <div className="space-y-2">
                                 <label className="block text-sm font-medium text-slate-700">Your name</label>
                                 <input
-                                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none ring-sky-100 focus:ring-4"
+                                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none ring-sky-100 focus:ring-4 transition-shadow"
                                     placeholder="Nama kamu"
                                     value={anonymous ? "" : name}
                                     onChange={(e) => setName(e.target.value)}
@@ -161,25 +167,46 @@ const BottomForm: React.FC<Props> = ({
                                     Describing your thought (Optional)
                                 </label>
                                 <textarea
-                                    className="min-h-[120px] w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none ring-sky-100 focus:ring-4"
+                                    className="min-h-[120px] w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none ring-sky-100 focus:ring-4 resize-none transition-shadow"
                                     placeholder="Tulis catatan tambahan…"
                                     value={notes}
                                     onChange={(e) => setNotes(e.target.value)}
                                 />
                             </div>
 
-                            <div className="flex items-center gap-2 text-xs text-slate-500">
+                            {phase !== "success" && (
+                                <div>
+                                    <label className="flex items-center gap-2 text-sm text-slate-700 p-3 rounded-xl border border-amber-200 bg-amber-50/50">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={forceCheck} 
+                                            onChange={(e) => setForceCheck(e.target.checked)} 
+                                            className="h-4 w-4 accent-amber-600" 
+                                        />
+                                        <span className="font-medium">Paksa periksa (bypass validasi)</span>
+                                    </label>
+                                </div>
+                            )}
+
+                            <div className="flex items-center gap-2 text-xs text-slate-500 pt-2">
                                 <Shield className="h-4 w-4" />
                                 Data kamu kami lindungi.
                             </div>
                         </div>
                     </div>
 
-                    <div className="pointer-events-auto absolute inset-x-0 bottom-0 bg-white/95 p-4 backdrop-blur">
+                    {/* Fixed Bottom Button - Extra padding when at full height */}
+                    <div 
+                        className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-white via-white to-transparent p-5 ${
+                            activeSnap === 1 ? 'pb-8' : 'pb-5'
+                        }`}
+                    >
                         <button
                             type="button"
-                            disabled={submitting}
-                            className={`w-full rounded-2xl bg-sky-600 py-3.5 text-white shadow-lg shadow-sky-600/30 active:scale-[0.98] transition ${submitting ? "opacity-70 cursor-not-allowed" : ""}`}
+                            disabled={submitting || (phase !== "success" && !forceCheck)}
+                            className={`w-full rounded-2xl bg-sky-600 py-4 text-white font-medium shadow-lg shadow-sky-600/30 active:scale-[0.98] transition-all ${
+                                submitting || (phase !== "success" && !forceCheck) ? "opacity-50 cursor-not-allowed" : "hover:bg-sky-700"
+                            }`}
                             onClick={async () => {
                                 if (submitting) return;
                                 setSubmitError(null);
@@ -216,8 +243,8 @@ const BottomForm: React.FC<Props> = ({
                             }}
                         >
                             {submitting ? (
-                                <span className="flex items-center justify-center gap-2 text-sm">
-                                    <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                                <span className="flex items-center justify-center gap-2">
+                                    <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
                                     Menyiapkan…
                                 </span>
                             ) : (
@@ -226,7 +253,7 @@ const BottomForm: React.FC<Props> = ({
                         </button>
 
                         {submitError && (
-                            <p className="mt-2 text-center text-xs text-red-600">
+                            <p className="mt-3 text-center text-xs text-red-600 font-medium">
                                 {submitError}
                             </p>
                         )}

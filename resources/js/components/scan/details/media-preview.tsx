@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useMemo, useState } from "react";
-import { ChevronUp, Check, X, AlertTriangle, Info, ImageIcon } from "lucide-react";
+import { ChevronDown, Check, X, AlertTriangle, Info, Loader2 } from "lucide-react";
 import type { CatApiResponse, CatApiSuccessV1 } from "@/types/scan";
 
 type Phase = "idle" | "uploading" | "analyzing" | "success" | "fail";
@@ -28,8 +28,11 @@ type StoredMeta = {
 
 export default function MediaPreview({ phase = "idle", errorMsg = "" }: Props) {
     const [hero, setHero] = useState<string | null>(null);
+    const [boundingBoxUrl, setBoundingBoxUrl] = useState<string | null>(null);
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [meta, setMeta] = useState<StoredMeta | null>(null);
     const [result, setResult] = useState<CatApiResponse | null>(null);
+    const [summaryVisible, setSummaryVisible] = useState(false);
 
     useEffect(() => {
         try {
@@ -43,6 +46,13 @@ export default function MediaPreview({ phase = "idle", errorMsg = "" }: Props) {
             const m = localStorage.getItem("scan:meta");
             if (m) setMeta(JSON.parse(m) as StoredMeta);
 
+            // Ambil bounding box URL jika ada
+            const bb = localStorage.getItem("scan:bounding-box");
+            if (bb) {
+                const parsed = JSON.parse(bb);
+                if (parsed?.url) setBoundingBoxUrl(parsed.url);
+            }
+
             // Result tetap di sessionStorage (seperti alur lama)
             const r = sessionStorage.getItem("scan:result");
             if (r) setResult(JSON.parse(r));
@@ -50,6 +60,13 @@ export default function MediaPreview({ phase = "idle", errorMsg = "" }: Props) {
             //
         }
     }, [phase]);
+
+    // Auto slide ke bounding box saat sukses
+    useEffect(() => {
+        if (phase === "success" && boundingBoxUrl) {
+            setCurrentImageIndex(1);
+        }
+    }, [phase, boundingBoxUrl]);
 
     const okRes: CatApiSuccessV1 | null =
         result && (result as any).ok === true ? (result as CatApiSuccessV1) : null;
@@ -87,11 +104,20 @@ export default function MediaPreview({ phase = "idle", errorMsg = "" }: Props) {
 
     const isAnalyzing = phase === "uploading" || phase === "analyzing";
 
+    const images = useMemo(() => {
+        const imgs: string[] = [];
+        if (hero) imgs.push(hero);
+        if (boundingBoxUrl && phase === "success") imgs.push(boundingBoxUrl);
+        return imgs;
+    }, [hero, boundingBoxUrl, phase]);
+
+    const hasMultipleImages = images.length > 1;
+
     return (
         <div className="w-full md:max-w-2xl max-w-full pt-0 relative">
             {/* VERDICT OVERLAY */}
             <div
-                className="h-20 w-20 absolute left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full z-20 shrink-0 grow-0 border-8 border-white grid place-items-center"
+                className="h-20 w-20 absolute left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full z-20 shrink-0 grow-0 border-8 border-white grid place-items-center transition-all duration-300"
                 style={{
                     top: "0",
                     background:
@@ -106,27 +132,63 @@ export default function MediaPreview({ phase = "idle", errorMsg = "" }: Props) {
                 aria-live="polite"
             >
                 {verdict === "loading" && (
-                    <div className="h-10 w-10 rounded-full border-4 border-white/70 border-t-transparent animate-spin" />
+                    <Loader2 className="h-10 w-10 text-white animate-spin" strokeWidth={2.5} />
                 )}
-                {verdict === "cat" && <Check className="text-white size-12" strokeWidth={3} />}
+                {verdict === "cat" && <Check className="text-white size-12 animate-in fade-in zoom-in duration-300" strokeWidth={3} />}
                 {(verdict === "noncat" || verdict === "fail" || verdict === "idle") && (
-                    <X className="text-white size-12" strokeWidth={3} />
+                    <X className="text-white size-12 animate-in fade-in zoom-in duration-300" strokeWidth={3} />
                 )}
             </div>
 
-            {/* IMAGE CARD */}
+            {/* IMAGE CARD WITH SLIDER */}
             <div className="w-fit h-auto bg-white border-8 border-white rounded-3xl overflow-hidden p-1 mx-auto max-w-[350px] md:max-w-lg shadow">
                 <div className="relative overflow-hidden rounded-2xl bg-neutral-200">
-                    {hero ? (
-                        <img src={hero} alt="Preview" className="h-[360px] w-full object-cover" />
-                    ) : (
-                        <div className="h-[360px] w-full grid place-items-center text-neutral-600">
-                            No image available
+                    {/* Image Slider Container */}
+                    <div className="relative h-[360px] w-full overflow-hidden">
+                        <div 
+                            className="flex h-full transition-transform duration-500 ease-out"
+                            style={{ transform: `translateX(-${currentImageIndex * 100}%)` }}
+                        >
+                            {images.map((img, idx) => (
+                                <div key={idx} className="min-w-full h-full flex-shrink-0">
+                                    <img 
+                                        src={img} 
+                                        alt={idx === 0 ? "Original" : "Bounding Box"} 
+                                        className="h-full w-full object-cover" 
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Navigation Dots */}
+                    {hasMultipleImages && (
+                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 bg-black/40 rounded-full px-3 py-1.5 backdrop-blur-sm">
+                            {images.map((_, idx) => (
+                                <button
+                                    key={idx}
+                                    onClick={() => setCurrentImageIndex(idx)}
+                                    className={`h-2 rounded-full transition-all duration-300 ${
+                                        idx === currentImageIndex 
+                                            ? 'w-6 bg-white' 
+                                            : 'w-2 bg-white/50 hover:bg-white/70'
+                                    }`}
+                                    aria-label={`View ${idx === 0 ? 'original' : 'bounding box'} image`}
+                                />
+                            ))}
                         </div>
                     )}
+
+                    {/* Image Label */}
+                    {hasMultipleImages && (
+                        <div className="absolute top-3 left-3 bg-black/60 text-white text-xs px-3 py-1.5 rounded-full backdrop-blur-sm">
+                            {currentImageIndex === 0 ? 'Original' : 'Bounding Box'}
+                        </div>
+                    )}
+
                     <button
                         type="button"
-                        className={`absolute bottom-3 right-3 grid h-10 w-10 place-items-center rounded-lg shadow-md ${isAnalyzing ? "bg-black/20 cursor-not-allowed" : "bg-black/50"
+                        className={`absolute bottom-3 right-3 grid h-10 w-10 place-items-center rounded-lg shadow-md transition-all ${isAnalyzing ? "bg-black/20 cursor-not-allowed" : "bg-black/50 hover:bg-black/70"
                             }`}
                         title={isAnalyzing ? "Analyzing..." : "Retry"}
                         onClick={async () => {
@@ -199,19 +261,21 @@ export default function MediaPreview({ phase = "idle", errorMsg = "" }: Props) {
             {/* STATUS */}
             <div className="mt-3 flex w-full justify-center">
                 {isAnalyzing ? (
-                    <div className="flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-sm text-slate-700 shadow">
-                        <div className="h-3 w-3 rounded-full border-2 border-slate-500 border-t-transparent animate-spin" />
-                        <span>Analyzing...</span>
+                    <div className="flex items-center gap-2 rounded-full bg-white/95 px-4 py-2 text-sm text-slate-700 shadow-md backdrop-blur-sm animate-pulse">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="font-medium">
+                            {phase === "uploading" ? "Uploading..." : "Analyzing..."}
+                        </span>
                     </div>
                 ) : null}
 
                 {okRes && (
                     <div
-                        className={`flex items-center gap-2 rounded-full px-3 py-1 text-sm shadow ${okRes.can_proceed ? "bg-white text-green-700" : "bg-white text-red-700"
+                        className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm shadow-md animate-in fade-in slide-in-from-bottom-2 duration-300 ${okRes.can_proceed ? "bg-white text-green-700" : "bg-white text-red-700"
                             }`}
                     >
                         {okRes.can_proceed ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
-                        <span>
+                        <span className="font-medium">
                             {okRes.message}
                             {okRes.recognize?.label ? ` • label=${okRes.recognize.label}` : ""}
                             {probText ? ` • ${probText}` : ""}
@@ -220,12 +284,12 @@ export default function MediaPreview({ phase = "idle", errorMsg = "" }: Props) {
                 )}
 
                 {!okRes && phase === "fail" && (
-                    <div className="flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm text-red-700 shadow">
+                    <div className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm text-red-700 shadow-md animate-in fade-in slide-in-from-bottom-2 duration-300">
                         <AlertTriangle className="h-4 w-4" />
-                        <span>Failed to analyze{errorMsg ? ` — ${errorMsg}` : ""}</span>
+                        <span className="font-medium">Failed to analyze{errorMsg ? ` — ${errorMsg}` : ""}</span>
                         <button
                             type="button"
-                            className="ml-1 rounded-md px-2 py-0.5 text-xs bg-red-50 border border-red-200 hover:bg-red-100"
+                            className="ml-1 rounded-md px-3 py-1 text-xs bg-red-50 border border-red-200 hover:bg-red-100 transition-colors"
                             onClick={() => window.dispatchEvent(new CustomEvent("scan:retry"))}
                         >
                             Retry
@@ -238,84 +302,73 @@ export default function MediaPreview({ phase = "idle", errorMsg = "" }: Props) {
                 <div className="mt-1 text-[10px] text-white/80 text-center">rid: {requestId}</div>
             )}
 
-            {/* RESULT SUMMARY */}
-            {okRes && (
-                <div className="mt-4 w-full max-w-xl mx-auto space-y-3">
-                    {/* NEW: Preview (Bounding Box) */}
-                    {okRes.faces?.preview_url && (
-                        <div className="bg-white rounded-xl shadow p-3">
-                            <div className="flex items-center gap-2 mb-2 text-slate-700">
-                                <ImageIcon className="h-4 w-4" />
-                                <span className="font-medium">Preview (Bounding Box)</span>
-                            </div>
-                            <img
-                                src={okRes.faces.preview_url}
-                                alt="Preview Bounding Box"
-                                className="w-full rounded-md border"
-                            />
-                        </div>
-                    )}
-
-                    {/* ROI (Selected Face) */}
-                    {okRes.faces?.roi_url && (
-                        <div className="bg-white rounded-xl shadow p-3">
-                            <div className="flex items-center gap-2 mb-2 text-slate-700">
-                                <ImageIcon className="h-4 w-4" />
-                                <span className="font-medium">ROI (Selected Face)</span>
-                            </div>
-                            <img src={okRes.faces.roi_url} alt="ROI" className="w-full rounded-md border" />
-                        </div>
-                    )}
-
-                    {/* Face detection summary */}
-                    <div className="bg-white rounded-xl shadow p-3">
-                        <div className="flex items-center gap-2 mb-2 text-slate-700">
-                            <Info className="h-4 w-4" />
-                            <span className="font-medium">Face Detection Summary</span>
-                        </div>
-                        <div className="text-sm text-slate-700 space-y-1">
-                            <div>
-                                <b>faces_count:</b> {okRes.faces?.faces_count ?? 0}
-                            </div>
-                            <div>
-                                <b>chosen_conf:</b>{" "}
-                                {typeof okRes.faces?.chosen_conf === "number"
-                                    ? okRes.faces?.chosen_conf.toFixed(3)
-                                    : "-"}
-                            </div>
-                            <div>
-                                <b>kept_confs ≥ min:</b>{" "}
-                                {Array.isArray(okRes.faces?.kept_confs_ge_min)
-                                    ? okRes.faces!.kept_confs_ge_min.map((v) => v.toFixed(3)).join(", ")
-                                    : "-"}
-                            </div>
-                            <div>
-                                <b>note:</b> {okRes.faces?.note ?? "-"}
-                            </div>
-                            {okRes.faces?.box ? (
-                                <div>
-                                    <b>box:</b> [{okRes.faces.box.join(", ")}]
+            {/* RESULT SUMMARY - Toggle dengan chevron */}
+            {okRes && summaryVisible && (
+                <div className="mt-6 w-full max-w-xl mx-auto">
+                    <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+                        <div className="p-4">
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="p-2 bg-blue-50 rounded-lg">
+                                    <Info className="h-5 w-5 text-blue-600" />
                                 </div>
-                            ) : null}
+                                <span className="font-semibold text-slate-800">Face Detection Summary</span>
+                            </div>
+                        
+                        <div className="text-sm text-slate-700 space-y-2">
+                                <div className="flex justify-between py-1">
+                                    <span className="font-medium text-slate-600">Faces Count:</span>
+                                    <span className="font-semibold">{okRes.faces?.faces_count ?? 0}</span>
+                                </div>
+                                <div className="flex justify-between py-1">
+                                    <span className="font-medium text-slate-600">Chosen Confidence:</span>
+                                    <span className="font-semibold">
+                                        {typeof okRes.faces?.chosen_conf === "number"
+                                            ? okRes.faces?.chosen_conf.toFixed(3)
+                                            : "-"}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between py-1">
+                                    <span className="font-medium text-slate-600">Kept Confs ≥ min:</span>
+                                    <span className="font-semibold">
+                                        {Array.isArray(okRes.faces?.kept_confs_ge_min)
+                                            ? okRes.faces!.kept_confs_ge_min.map((v) => v.toFixed(3)).join(", ")
+                                            : "-"}
+                                    </span>
+                                </div>
+                                <div className="flex flex-col py-1">
+                                    <span className="font-medium text-slate-600 mb-1">Note:</span>
+                                    <span className="text-slate-800">{okRes.faces?.note ?? "-"}</span>
+                                </div>
+                                {okRes.faces?.box ? (
+                                    <div className="flex flex-col py-1">
+                                        <span className="font-medium text-slate-600 mb-1">Box:</span>
+                                        <span className="font-mono text-xs bg-slate-50 p-2 rounded">
+                                            [{okRes.faces.box.join(", ")}]
+                                        </span>
+                                    </div>
+                                ) : null}
+                            </div>
                         </div>
                     </div>
-
-                    <details className="bg-white rounded-xl shadow p-3">
-                        <summary className="cursor-pointer select-none text-sm text-slate-700">
-                            Raw payload (JSON)
-                        </summary>
-                        <pre className="mt-2 text-xs overflow-auto">
-                            {JSON.stringify(okRes, null, 2)}
-                        </pre>
-                    </details>
                 </div>
             )}
 
-            <div className="mt-2 flex w-full justify-center">
-                <div className="grid place-items-center rounded-full bg-white shadow-md px-2 py-0">
-                    <ChevronUp className="h-5 w-5 text-slate-600" strokeWidth={2.5} />
-                </div>
-            </div>
+            {/* Chevron Toggle */}
+            {okRes && (
+                <button
+                    onClick={() => setSummaryVisible(!summaryVisible)}
+                    className="mt-4 mx-auto flex items-center justify-center"
+                >
+                    <div className="grid place-items-center rounded-full bg-white shadow-md px-2 py-0 hover:shadow-lg transition-shadow cursor-pointer">
+                        <ChevronDown 
+                            className={`h-5 w-5 text-slate-600 transition-transform duration-300 ${
+                                summaryVisible ? 'rotate-180' : 'animate-bounce'
+                            }`} 
+                            strokeWidth={2.5} 
+                        />
+                    </div>
+                </button>
+            )}
         </div>
     );
 }

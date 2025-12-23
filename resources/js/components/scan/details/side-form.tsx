@@ -14,14 +14,16 @@ type Props = {
     updatedAt: Date | null
     refreshLocation: () => void
     clearLocation: () => void
+    phase?: string
 }
 
-const SideForm: React.FC<Props> = ({ status, coords, address, updatedAt, refreshLocation, clearLocation }) => {
+const SideForm: React.FC<Props> = ({ status, coords, address, updatedAt, refreshLocation, clearLocation, phase }) => {
     const [anonymous, setAnonymous] = useState(true)
     const [name, setName] = useState("")
     const [notes, setNotes] = useState("")
     const [submitting, setSubmitting] = useState(false)
     const [submitError, setSubmitError] = useState<string | null>(null)
+    const [forceCheck, setForceCheck] = useState(false)
     const route = useRoute();
 
     const toRelativeUrl = useCallback((url: string) => {
@@ -36,7 +38,7 @@ const SideForm: React.FC<Props> = ({ status, coords, address, updatedAt, refresh
     }, [])
 
     const buildRoute = useCallback(
-        (name: string, params?: unknown) => toRelativeUrl(route(name, params)),
+        (name: string, params?: any) => toRelativeUrl(route(name as any, params as any) as unknown as string),
         [route, toRelativeUrl]
     )
 
@@ -50,12 +52,12 @@ const SideForm: React.FC<Props> = ({ status, coords, address, updatedAt, refresh
     }
 
     return (
-        <div className="relative flex h-screen w-full flex-col border-slate-200 bg-white shadow-md overflow-hidden">
+        <div className="relative flex h-screen w-[50vw] max-w-xl flex-col border-l border-slate-200 bg-white shadow-xl">
             <div
-                className="flex-1 overflow-y-auto px-12 py-14"
+                className="flex-1 overflow-y-auto px-8 py-10"
                 style={{
                     scrollbarWidth: "thin",
-                    scrollbarColor: "#a0aec0 transparent",
+                    scrollbarColor: "#cbd5e1 transparent",
                 }}
             >
 
@@ -85,27 +87,43 @@ const SideForm: React.FC<Props> = ({ status, coords, address, updatedAt, refresh
                     </label>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 mt-4">
                     <label className="block text-sm font-medium text-slate-700">Catatan tambahan (Opsional)</label>
                     <textarea
-                        className="min-h-[100px] w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none ring-sky-100 focus:ring-4"
+                        className="min-h-[100px] w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none ring-sky-100 focus:ring-4 resize-none"
                         placeholder="Tulis catatan tambahan…"
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
                     />
                 </div>
+
+                {phase !== "success" && (
+                    <div className="mt-4">
+                        <label className="flex items-center gap-2 text-sm text-slate-700 p-3 rounded-xl border border-amber-200 bg-amber-50/50">
+                            <input 
+                                type="checkbox" 
+                                checked={forceCheck} 
+                                onChange={(e) => setForceCheck(e.target.checked)} 
+                                className="h-4 w-4 accent-amber-600" 
+                            />
+                            <span className="font-medium">Paksa periksa (bypass validasi)</span>
+                        </label>
+                    </div>
+                )}
             </div>
 
-            {/* Footer tetap di bawah */}
-            <div className="sticky bottom-0 left-0 w-full bg-white px-12 py-4 border-t border-slate-200 shadow-md">
-                <div className="flex items-center gap-2 text-xs text-slate-500 mb-3">
+            {/* Footer tetap di bawah - FIXED */}
+            <div className="sticky bottom-0 left-0 w-full bg-white px-8 py-6 border-t border-slate-200 shadow-lg">
+                <div className="flex items-center gap-2 text-xs text-slate-500 mb-4">
                     <Shield className="h-4 w-4" />
                     Data kamu kami lindungi.
                 </div>
                 <button
                     type="button"
-                    disabled={submitting}
-                    className={`w-full rounded-2xl bg-sky-600 py-3.5 text-white shadow-lg shadow-sky-600/30 active:scale-[0.98] transition ${submitting ? "opacity-70 cursor-not-allowed" : ""}`}
+                    disabled={submitting || (phase !== "success" && !forceCheck)}
+                    className={`w-full rounded-2xl bg-sky-600 py-3.5 text-white font-medium shadow-lg shadow-sky-600/30 active:scale-[0.98] transition-transform ${
+                        submitting || (phase !== "success" && !forceCheck) ? "opacity-50 cursor-not-allowed" : "hover:bg-sky-700"
+                    }`}
                     onClick={async () => {
                         if (submitting) return;
                         setSubmitError(null);
