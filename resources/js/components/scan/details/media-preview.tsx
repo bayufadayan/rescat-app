@@ -299,7 +299,7 @@ export default function MediaPreview({ phase = "idle", errorMsg = "" }: Props) {
             {/* RESULT SUMMARY - Toggle dengan chevron */}
             {okRes && (
                 <div 
-                    className="mt-6 w-full max-w-xl mx-auto overflow-hidden transition-all duration-500 ease-in-out"
+                    className="mt-3 w-full max-w-xl mx-auto overflow-hidden transition-all duration-500 ease-in-out"
                     style={{
                         maxHeight: summaryVisible ? '1000px' : '0px',
                         opacity: summaryVisible ? 1 : 0,
@@ -357,7 +357,7 @@ export default function MediaPreview({ phase = "idle", errorMsg = "" }: Props) {
             {okRes && (
                 <button
                     onClick={() => setSummaryVisible(!summaryVisible)}
-                    className={`${summaryVisible ? "animate-bounce mt-4" : "mt-0"} mx-auto flex items-center justify-center mb-16 lg:mb-8`}
+                    className={`${summaryVisible ? "animate-bounce mt-4" : "mt-0"} mx-auto flex items-center justify-center mb-20 lg:mb-8`}
                 >
                     <div className="grid place-items-center rounded-full bg-white shadow-md px-2 py-0 hover:shadow-lg transition-shadow cursor-pointer">
                         <ChevronDown 
