@@ -241,7 +241,7 @@ export default function ScanDetails() {
                 <div className="flex w-full h-full flex-col justify-center items-center lg:flex-row lg:items-start lg:justify-center px-4 pt-16 lg:px-0 lg:pt-0">
                     {/* Left / main visual */}
                     <div 
-                        className="flex-1 w-full lg:h-screen lg:overflow-y-auto flex items-center justify-center"
+                        className="flex-1 w-full lg:h-screen lg:overflow-y-auto flex items-start justify-center"
                         style={{
                             scrollbarWidth: "thin",
                             scrollbarColor: "rgba(203, 213, 225, 0.6) transparent",

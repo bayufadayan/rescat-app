@@ -145,20 +145,26 @@ const BottomForm: React.FC<Props> = ({
                             <div className="space-y-2">
                                 <label className="block text-sm font-medium text-slate-700">Your name</label>
                                 <input
-                                    className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none ring-sky-100 focus:ring-4 transition-shadow"
+                                    className={`w-full rounded-xl border px-4 py-3 text-sm outline-none transition-all ${anonymous
+                                            ? 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
+                                            : 'border-slate-200 bg-white text-slate-900 ring-sky-100 focus:ring-4'
+                                        }`}
                                     placeholder="Nama kamu"
                                     value={anonymous ? "" : name}
                                     onChange={(e) => setName(e.target.value)}
                                     disabled={anonymous}
                                 />
-                                <label className="mt-2 flex items-center gap-2 text-sm text-slate-700">
-                                    <input
-                                        type="checkbox"
-                                        checked={anonymous}
-                                        onChange={(e) => setAnonymous(e.target.checked)}
-                                        className="h-4 w-4 accent-sky-600"
-                                    />
-                                    Anonim
+                                <label className="mt-2 flex items-center gap-3 text-sm text-slate-700 cursor-pointer">
+                                    <div className="relative inline-block">
+                                        <input
+                                            type="checkbox"
+                                            checked={anonymous}
+                                            onChange={(e) => setAnonymous(e.target.checked)}
+                                            className="sr-only peer"
+                                        />
+                                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-sky-100 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600"></div>
+                                    </div>
+                                    <span className="font-medium">Anonim</span>
                                 </label>
                             </div>
 
@@ -173,40 +179,49 @@ const BottomForm: React.FC<Props> = ({
                                     onChange={(e) => setNotes(e.target.value)}
                                 />
                             </div>
-
-                            {phase !== "success" && (
-                                <div>
-                                    <label className="flex items-center gap-2 text-sm text-slate-700 p-3 rounded-xl border border-amber-200 bg-amber-50/50">
-                                        <input 
-                                            type="checkbox" 
-                                            checked={forceCheck} 
-                                            onChange={(e) => setForceCheck(e.target.checked)} 
-                                            className="h-4 w-4 accent-amber-600" 
-                                        />
-                                        <span className="font-medium">Paksa periksa (bypass validasi)</span>
-                                    </label>
-                                </div>
-                            )}
-
-                            <div className="flex items-center gap-2 text-xs text-slate-500 pt-2">
-                                <Shield className="h-4 w-4" />
-                                Data kamu kami lindungi.
-                            </div>
                         </div>
                     </div>
 
                     {/* Fixed Bottom Button - Extra padding when at full height */}
-                    <div 
-                        className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-white via-white to-transparent p-5 ${
-                            activeSnap === 1 ? 'pb-8' : 'pb-5'
-                        }`}
+                    <div
+                        className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-white via-white to-transparent p-5 ${activeSnap === 1 ? 'pb-8' : 'pb-5'
+                            }`}
                     >
+                        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4">
+                            <div className="flex items-center gap-2 text-xs text-slate-500">
+                                <Shield className="h-4 w-4" />
+                                <span>Data kamu kami lindungi.</span>
+                            </div>
+
+                            {phase !== "success" && (
+                                <div className="flex items-center rounded-xl border border-amber-200 bg-amber-50/60 px-3 py-2">
+                                    <label className="flex items-center gap-3 cursor-pointer whitespace-nowrap text-xs sm:text-sm text-slate-700">
+                                        <span className="font-medium">Paksa periksa</span>
+                                        <span className="relative inline-flex items-center shrink-0">
+                                            <input
+                                                type="checkbox"
+                                                checked={forceCheck}
+                                                onChange={(e) => setForceCheck(e.target.checked)}
+                                                className="sr-only peer"
+                                            />
+                                            <span
+                                                className="relative h-5 w-9 rounded-full bg-amber-200
+                                                                    peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-100
+                                                                    peer-checked:bg-amber-600
+                                                                    after:content-[''] after:absolute after:left-[2px] after:top-[2px]
+                                                                    after:h-4 after:w-4 after:rounded-full after:bg-white after:border after:border-amber-300 after:transition-all
+                                                                    peer-checked:after:translate-x-4"
+                                            />
+                                        </span>
+                                    </label>
+                                </div>
+                            )}
+                        </div>
                         <button
                             type="button"
                             disabled={submitting || (phase !== "success" && !forceCheck)}
-                            className={`w-full rounded-2xl bg-sky-600 py-4 text-white font-medium shadow-lg shadow-sky-600/30 active:scale-[0.98] transition-all ${
-                                submitting || (phase !== "success" && !forceCheck) ? "opacity-50 cursor-not-allowed" : "hover:bg-sky-700"
-                            }`}
+                            className={`w-full rounded-2xl bg-sky-600 py-4 text-white font-medium shadow-lg shadow-sky-600/30 active:scale-[0.98] transition-all ${submitting || (phase !== "success" && !forceCheck) ? "opacity-50 cursor-not-allowed" : "hover:bg-sky-700"
+                                }`}
                             onClick={async () => {
                                 if (submitting) return;
                                 setSubmitError(null);

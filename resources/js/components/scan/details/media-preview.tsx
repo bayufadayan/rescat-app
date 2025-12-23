@@ -109,10 +109,10 @@ export default function MediaPreview({ phase = "idle", errorMsg = "" }: Props) {
     const hasMultipleImages = images.length > 1;
 
     return (
-        <div className="w-full md:max-w-2xl max-w-full pt-0 relative flex flex-col min-h-full bg-red-500 lg:mt-8">
+        <div className="w-full md:max-w-2xl max-w-full py-4 lg:py-0 relative flex flex-col lg:mt-10">
             {/* VERDICT OVERLAY */}
             <div
-                className="h-20 w-20 absolute left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full z-20 shrink-0 grow-0 border-8 border-white transition-all duration-300"
+                className="h-20 w-20 absolute left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full z-20 shrink-0 grow-0 border-8 border-white transition-all grid place-items-center duration-300"
                 style={{
                     top: "0",
                     background:
@@ -296,8 +296,14 @@ export default function MediaPreview({ phase = "idle", errorMsg = "" }: Props) {
             )}
 
             {/* RESULT SUMMARY - Toggle dengan chevron */}
-            {okRes && summaryVisible && (
-                <div className="mt-6 w-full max-w-xl mx-auto">
+            {okRes && (
+                <div 
+                    className="mt-6 w-full max-w-xl mx-auto overflow-hidden transition-all duration-500 ease-in-out"
+                    style={{
+                        maxHeight: summaryVisible ? '1000px' : '0px',
+                        opacity: summaryVisible ? 1 : 0,
+                    }}
+                >
                     <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
                         <div className="p-4">
                             <div className="flex items-center gap-3 mb-3">
@@ -350,7 +356,7 @@ export default function MediaPreview({ phase = "idle", errorMsg = "" }: Props) {
             {okRes && (
                 <button
                     onClick={() => setSummaryVisible(!summaryVisible)}
-                    className="mt-4 mx-auto flex items-center justify-center"
+                    className={`${summaryVisible ? "animate-bounce mt-4" : "mt-0"} mx-auto flex items-center justify-center`}
                 >
                     <div className="grid place-items-center rounded-full bg-white shadow-md px-2 py-0 hover:shadow-lg transition-shadow cursor-pointer">
                         <ChevronDown 

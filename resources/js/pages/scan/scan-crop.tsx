@@ -169,14 +169,14 @@ export default function ScanCrop() {
                             variant="outline"
                             className="h-10 px-6 rounded-lg border-white/20 bg-white/5 hover:bg-white/10 hover:border-white/30"
                         >
-                            <ArrowLeft className="h-4 w-4 mr-2" />
+                            <ArrowLeft className="h-4 w-4" />
                             Kembali
                         </Button>
                         <Button
                             onClick={() => fileRef.current?.click()}
                             className="h-10 px-6 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500"
                         >
-                            <ImageIcon className="h-4 w-4 mr-2" />
+                            <ImageIcon className="h-4 w-4" />
                             Pilih Foto
                         </Button>
                     </div>
