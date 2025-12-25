@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Home, Info } from "lucide-react";
+import { Home, Info, CheckCircle2 } from "lucide-react";
 import { route } from "ziggy-js";
 import LottiePlayer from "@/components/lottie/LottiePlayer";
 import type { ScanSessionPayload, ScanStatusValue } from "@/types/scan-result";
@@ -11,12 +12,21 @@ type ScanProcessProps = {
 
 type ProcessingState = "idle" | "processing" | "done" | "error";
 
+type StatusStep = {
+    id: string;
+    message: string;
+    completed: boolean;
+};
+
 export default function ScanProcess({ session }: ScanProcessProps) {
     const [processingState, setProcessingState] = useState<ProcessingState>("processing");
     const [sessionStatus, setSessionStatus] = useState<ScanStatusValue>(session.status ?? "processing");
     const [statusMessage, setStatusMessage] = useState("Menginisiasi proses analisis …");
+    const [statusSteps, setStatusSteps] = useState<StatusStep[]>([]);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [removedUrl, setRemovedUrl] = useState<string | null>(session.images?.[0]?.img_remove_bg_url ?? null);
+    const [showFlip, setShowFlip] = useState(false);
+    const [isClassificationDone, setIsClassificationDone] = useState(false);
 
     const firstImage = session?.images?.[0];
     const rawOriginalUrl = firstImage?.img_original_url ?? null;
@@ -28,7 +38,24 @@ export default function ScanProcess({ session }: ScanProcessProps) {
 
     const maskSource = removedUrl ?? firstImage?.img_remove_bg_url ?? null;
     const maskImage = maskSource ? `url(${maskSource})` : undefined;
-    const isImageReady = processingState === "done" && Boolean(maskImage);
+    const isImageReady = Boolean(maskImage);
+
+    const addStatusStep = useCallback((message: string) => {
+        setStatusSteps((prev) => {
+            const exists = prev.find((s) => s.message === message);
+            if (exists) return prev;
+            
+            const updated = prev.map((s) => ({ ...s, completed: true }));
+            return [...updated, { id: Date.now().toString(), message, completed: false }];
+        });
+        setStatusMessage(message);
+    }, []);
+
+    const completeCurrentStep = useCallback(() => {
+        setStatusSteps((prev) =>
+            prev.map((s, i) => (i === prev.length - 1 ? { ...s, completed: true } : s))
+        );
+    }, []);
 
     const pipelineEndpoint = useMemo(
         () => route("scan.process.removebg", { scan_session: session.id }),
@@ -50,7 +77,7 @@ export default function ScanProcess({ session }: ScanProcessProps) {
     const runPipeline = useCallback(async () => {
         try {
             setProcessingState("processing");
-            setStatusMessage("Menghapus latar belakang dan menyiapkan landmark …");
+            addStatusStep("Menghapus latar belakang dan menyiapkan landmark …");
 
             const csrfToken = (document.querySelector(
                 'meta[name="csrf-token"]'
@@ -79,15 +106,15 @@ export default function ScanProcess({ session }: ScanProcessProps) {
 
             if (nextRemovedUrl) {
                 setRemovedUrl(nextRemovedUrl);
+                completeCurrentStep();
+                setTimeout(() => setShowFlip(true), 100);
             }
-
-            setStatusMessage("Menunggu hasil klasifikasi …");
         } catch (e) {
             console.error("ScanProcess pipeline error:", e);
             setProcessingState("error");
             setErrorMsg(e instanceof Error ? e.message : "Terjadi kesalahan.");
         }
-    }, [pipelineEndpoint]);
+    }, [pipelineEndpoint, addStatusStep, completeCurrentStep]);
 
     useEffect(() => {
         if (hasRequestedRef.current) return;
@@ -138,18 +165,23 @@ export default function ScanProcess({ session }: ScanProcessProps) {
                     ) ?? false;
 
                     if (hasDescription) {
-                        setStatusMessage("Membuat ringkasan dan saran dengan AI …");
+                        completeCurrentStep();
+                        addStatusStep("Membuat ringkasan dan saran dengan AI …");
                     } else if (detailCount > 0) {
-                        setStatusMessage("Mengklasifikasi area wajah kucing …");
-                    } else {
-                        setStatusMessage("Mendeteksi landmark wajah kucing …");
+                        completeCurrentStep();
+                        addStatusStep("Mengklasifikasi area wajah kucing …");
+                    } else if (remoteRemove) {
+                        completeCurrentStep();
+                        addStatusStep("Mendeteksi landmark wajah kucing …");
                     }
                 }
 
                 if (nextStatus === "done" && !redirectRef.current) {
                     redirectRef.current = true;
+                    completeCurrentStep();
+                    setIsClassificationDone(true);
                     setProcessingState("done");
-                    setStatusMessage("Analisis selesai, menampilkan hasil …");
+                    addStatusStep("Analisis selesai, menampilkan hasil …");
                     setTimeout(() => {
                         window.location.href = resultsUrl;
                     }, 1200);
@@ -179,7 +211,7 @@ export default function ScanProcess({ session }: ScanProcessProps) {
             cancelled = true;
             window.clearInterval(id);
         };
-    }, [statusEndpoint, resultsUrl, removedUrl, processingState]);
+    }, [statusEndpoint, resultsUrl, removedUrl, processingState, addStatusStep, completeCurrentStep]);
 
     return (
         <main className="min-h-dvh h-dvh flex items-center justify-center bg-[linear-gradient(to_bottom,_#0091F3,_#21A6FF)] relative">
@@ -216,11 +248,15 @@ export default function ScanProcess({ session }: ScanProcessProps) {
                 {/* Main */}
                 <div className="flex items-center justify-center flex-col relative">
                     <div className="flex flex-col items-center gap-6">
-                        <div className="relative h-72 w-72">
+                        <div className={`relative transition-all duration-700 ease-out ${
+                            isClassificationDone ? 'h-80 w-80' : 'h-72 w-72'
+                        }`}>
                             {/* Lingkaran background */}
                             <svg
                                 viewBox="0 0 120 120"
-                                className="absolute inset-0 h-full w-full"
+                                className={`absolute inset-0 h-full w-full transition-all duration-700 ${
+                                    isClassificationDone ? 'opacity-0' : 'opacity-100'
+                                }`}
                                 aria-hidden="true"
                             >
                                 <circle
@@ -232,6 +268,36 @@ export default function ScanProcess({ session }: ScanProcessProps) {
                                     strokeWidth="8"
                                 />
                             </svg>
+
+                            {/* Neon border saat selesai */}
+                            {isClassificationDone && (
+                                <svg
+                                    viewBox="0 0 120 120"
+                                    className="absolute inset-0 h-full w-full animate-pulse"
+                                    style={{ animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}
+                                    aria-hidden="true"
+                                >
+                                    <defs>
+                                        <filter id="neon-glow">
+                                            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                                            <feMerge>
+                                                <feMergeNode in="coloredBlur"/>
+                                                <feMergeNode in="SourceGraphic"/>
+                                            </feMerge>
+                                        </filter>
+                                    </defs>
+                                    <circle
+                                        cx="60"
+                                        cy="60"
+                                        r="54"
+                                        fill="none"
+                                        stroke="rgba(34, 197, 94, 0.9)"
+                                        strokeWidth="8"
+                                        filter="url(#neon-glow)"
+                                        className="drop-shadow-[0_0_15px_rgba(34,197,94,0.8)]"
+                                    />
+                                </svg>
+                            )}
 
                             {/* Loader circle (muter) */}
                             {processingState !== "done" && (
@@ -253,112 +319,156 @@ export default function ScanProcess({ session }: ScanProcessProps) {
                                 </svg>
                             )}
 
-                            {isImageReady ? (
-                                <>
-                                    <img
-                                        src={originalUrl ?? "/images/dummy/cat-original.png"}
-                                        alt="subject"
-                                        className="absolute left-1/2 top-1/2 h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full object-cover shadow-xl ring-4 ring-white/70"
-                                    />
-
-                                    <style>
-                                        {`
-                                            @keyframes scan-sweep {
-                                                0% { background-position: -60% 50%; }
-                                                100% { background-position: 160% 50%; }
-                                            }
-                                            @keyframes scan-pulse {
-                                                0%,100% { filter: brightness(1); }
-                                                50% { filter: brightness(1.25); }
-                                            }
-                                            @keyframes scan-glow {
-                                                0%,100% { opacity: .35; transform: scale(1); }
-                                                50% { opacity: .6; transform: scale(1.02); }
-                                            }
-                                        `}
-                                    </style>
-
-                                    <div
-                                        className="absolute left-1/2 top-1/2 h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full overflow-hidden"
-                                        aria-hidden="true"
+                            {/* Flip card container */}
+                            <div 
+                                className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transition-all duration-700 ${
+                                    isClassificationDone ? 'h-72 w-72' : 'h-56 w-56'
+                                }`}
+                                style={{ 
+                                    perspective: '1000px',
+                                }}
+                            >
+                                <div 
+                                    className="relative h-full w-full"
+                                    style={{
+                                        transformStyle: 'preserve-3d',
+                                        transform: showFlip && isImageReady ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                                        transition: 'transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
+                                    }}
+                                >
+                                    {/* Front: Lottie */}
+                                    <div 
+                                        className="absolute inset-0 rounded-full bg-white flex items-center justify-center shadow-xl ring-4 ring-white/70"
+                                        style={{
+                                            backfaceVisibility: 'hidden',
+                                            WebkitBackfaceVisibility: 'hidden',
+                                        }}
                                     >
-                                        <div
-                                            className="h-full w-full"
-                                            style={{
-                                                WebkitMaskImage: maskImage,
-                                                maskImage: maskImage,
-                                                WebkitMaskSize: "cover",
-                                                maskSize: "cover",
-                                                WebkitMaskRepeat: "no-repeat",
-                                                maskRepeat: "no-repeat",
-                                                WebkitMaskPosition: "center",
-                                                maskPosition: "center",
-                                                background:
-                                                    "linear-gradient(100deg, rgba(0,145,243,0) 0%, rgba(0,145,243,0.55) 40%, rgba(0,145,243,0.85) 50%, rgba(0,145,243,0.55) 60%, rgba(0,145,243,0) 100%)",
-                                                animation:
-                                                    "scan-sweep 2.4s linear infinite, scan-pulse 2.2s ease-in-out infinite",
-                                                backgroundSize: "220% 100%",
-                                                backgroundPosition: "-50% 50%",
-                                                mixBlendMode: "screen",
-                                            }}
+                                        <LottiePlayer src="/animations/waiting-cat.lottie" />
+                                    </div>
+
+                                    {/* Back: Image dengan mask */}
+                                    <div 
+                                        className="absolute inset-0"
+                                        style={{
+                                            backfaceVisibility: 'hidden',
+                                            WebkitBackfaceVisibility: 'hidden',
+                                            transform: 'rotateY(180deg)',
+                                        }}
+                                    >
+                                        <img
+                                            src={originalUrl ?? "/images/dummy/cat-original.png"}
+                                            alt="subject"
+                                            className="absolute inset-0 h-full w-full rounded-full object-cover shadow-xl ring-4 ring-white/70"
                                         />
 
-                                        <div
-                                            className="pointer-events-none absolute inset-0"
-                                            style={{
-                                                WebkitMaskImage: maskImage,
-                                                maskImage: maskImage,
-                                                WebkitMaskSize: "cover",
-                                                maskSize: "cover",
-                                                WebkitMaskRepeat: "no-repeat",
-                                                maskRepeat: "no-repeat",
-                                                WebkitMaskPosition: "center",
-                                                maskPosition: "center",
-                                                background:
-                                                    "radial-gradient(60% 60% at 50% 50%, rgba(33,166,255,0.25) 0%, rgba(33,166,255,0.1) 50%, rgba(33,166,255,0) 100%)",
-                                                animation: "scan-glow 3.5s ease-in-out infinite",
-                                                mixBlendMode: "screen",
-                                            }}
-                                        />
+                                        <style>
+                                            {`
+                                                @keyframes scan-sweep {
+                                                    0% { background-position: -60% 50%; }
+                                                    100% { background-position: 160% 50%; }
+                                                }
+                                                @keyframes scan-pulse {
+                                                    0%,100% { filter: brightness(1); }
+                                                    50% { filter: brightness(1.25); }
+                                                }
+                                                @keyframes scan-glow {
+                                                    0%,100% { opacity: .35; transform: scale(1); }
+                                                    50% { opacity: .6; transform: scale(1.02); }
+                                                }
+                                            `}
+                                        </style>
+
+                                        {isImageReady && (
+                                            <>
+                                                <div
+                                                    className="absolute inset-0 rounded-full overflow-hidden"
+                                                    aria-hidden="true"
+                                                >
+                                                    <div
+                                                        className="h-full w-full"
+                                                        style={{
+                                                            WebkitMaskImage: maskImage,
+                                                            maskImage: maskImage,
+                                                            WebkitMaskSize: "cover",
+                                                            maskSize: "cover",
+                                                            WebkitMaskRepeat: "no-repeat",
+                                                            maskRepeat: "no-repeat",
+                                                            WebkitMaskPosition: "center",
+                                                            maskPosition: "center",
+                                                            background:
+                                                                "linear-gradient(100deg, rgba(0,145,243,0) 0%, rgba(0,145,243,0.55) 40%, rgba(0,145,243,0.85) 50%, rgba(0,145,243,0.55) 60%, rgba(0,145,243,0) 100%)",
+                                                            animation:
+                                                                "scan-sweep 2.4s linear infinite, scan-pulse 2.2s ease-in-out infinite",
+                                                            backgroundSize: "220% 100%",
+                                                            backgroundPosition: "-50% 50%",
+                                                            mixBlendMode: "screen",
+                                                        }}
+                                                    />
+
+                                                    <div
+                                                        className="pointer-events-none absolute inset-0"
+                                                        style={{
+                                                            WebkitMaskImage: maskImage,
+                                                            maskImage: maskImage,
+                                                            WebkitMaskSize: "cover",
+                                                            maskSize: "cover",
+                                                            WebkitMaskRepeat: "no-repeat",
+                                                            maskRepeat: "no-repeat",
+                                                            WebkitMaskPosition: "center",
+                                                            maskPosition: "center",
+                                                            background:
+                                                                "radial-gradient(60% 60% at 50% 50%, rgba(33,166,255,0.25) 0%, rgba(33,166,255,0.1) 50%, rgba(33,166,255,0) 100%)",
+                                                            animation: "scan-glow 3.5s ease-in-out infinite",
+                                                            mixBlendMode: "screen",
+                                                        }}
+                                                    />
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
-                                </>
-                            ) : (
-                                <div className="absolute left-1/2 top-1/2 h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full object-cover bg-white flex items-center justify-center">
-                                    <LottiePlayer src="/animations/waiting-cat.lottie" />
                                 </div>
-                            )}
+                            </div>
                         </div>
 
                         {/* Status */}
-                        <div className="flex flex-col items-center gap-3 text-center">
-                            <p className="flex items-center gap-2 text-white/80 mt-1">
-                                <span className="inline-block h-2 w-2 rounded-full bg-white/80" />
-                                <span className="text-xs font-mono tracking-wide">
-                                    Scan Session ID: {session.id}
-                                </span>
-                            </p>
-
+                        <div className="flex flex-col items-center gap-4 text-center max-w-md">
                             <p className="text-white text-xs uppercase tracking-widest">
                                 Status: {sessionStatus === "done" ? "Selesai" : sessionStatus === "failed" ? "Gagal" : "Sedang Diproses"}
                             </p>
 
-                            <p className="text-white text-sm max-w-xs leading-relaxed">
-                                {processingState === "error"
-                                    ? errorMsg ?? "Terjadi kesalahan."
-                                    : statusMessage}
-                            </p>
+                            {/* Status Steps History */}
+                            <div className="flex flex-col gap-2 w-full">
+                                {statusSteps.map((step) => (
+                                    <div 
+                                        key={step.id}
+                                        className="flex items-center gap-3 text-white text-sm transition-all duration-300"
+                                    >
+                                        {step.completed ? (
+                                            <CheckCircle2 className="h-4 w-4 text-green-400 flex-shrink-0" />
+                                        ) : (
+                                            <span className="inline-block h-4 w-4 flex-shrink-0 animate-[spin_1s_linear_infinite] rounded-full border-2 border-white border-t-transparent" />
+                                        )}
+                                        <span className={step.completed ? 'opacity-80' : 'font-medium'}>
+                                            {step.message}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {processingState === "error" && (
+                                <p className="text-white text-sm max-w-xs leading-relaxed mt-2">
+                                    {errorMsg ?? "Terjadi kesalahan."}
+                                </p>
+                            )}
 
                             {processingState !== "done" && processingState !== "error" && (
-                                <div className="flex flex-col items-center gap-2">
+                                <div className="flex flex-col items-center gap-2 mt-2">
                                     <p className="flex items-center gap-2 text-white/95">
                                         <span className="inline-block h-3 w-3 animate-[spin_1s_linear_infinite] rounded-full border-2 border-white border-t-transparent" />
                                         <span className="text-base font-semibold tracking-wide">
                                             Sistem sedang memproses …
                                         </span>
-                                    </p>
-                                    <p className="flex items-center gap-2 text-white/90 text-xs">
-                                        <span className="inline-block h-3 w-3 animate-[spin_1s_linear_infinite] rounded-full border-2 border-white border-t-transparent" />
-                                        <span>Jangan tutup atau refresh halaman.</span>
                                     </p>
                                 </div>
                             )}
@@ -376,10 +486,12 @@ export default function ScanProcess({ session }: ScanProcessProps) {
                     </div>
                 </div>
 
-                {/* Footer */}
-                <div className="bg-white shadow-md w-full rounded-full p-2 flex flex-row gap-2 items-center max-w-lg self-center">
-                    <Info height={20} width={20} className="text-amber-500" />
-                    <p className="flex flex-1 text-black text-xs">
+                {/* Footer - Enhanced visibility */}
+                <div className="bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 shadow-2xl w-full rounded-2xl p-4 flex flex-row gap-3 items-center max-w-lg self-center border-2 border-amber-500/50 animate-pulse">
+                    <div className="bg-white/90 rounded-full p-2 flex-shrink-0">
+                        <Info height={24} width={24} className="text-amber-600" />
+                    </div>
+                    <p className="flex flex-1 text-amber-950 font-semibold text-sm leading-tight">
                         Tunggu sebentar! Halaman hasil akan terbuka otomatis.
                     </p>
                 </div>
