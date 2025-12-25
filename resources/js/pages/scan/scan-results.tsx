@@ -7,6 +7,7 @@ import WarningBanner from '@/components/scan/results/main/waning-banner';
 import PhotoViewer from '@/components/scan/results/summary/photo-viewer';
 import AnalysisResultCard from '@/components/scan/results/summary/analysis-result-card';
 import BackToHome from '@/components/scan/results/main/back-to-home-button';
+import ScanAgainButton from '@/components/scan/results/main/scan-again-button';
 import ThumbTabs from '@/components/scan/results/detail/thumb-tabs';
 import MediaInspectionCard from '@/components/scan/results/detail/media-inspection-card';
 import AnalysisTile from '@/components/scan/results/detail/analysis-tile';
@@ -47,6 +48,7 @@ export default function ScanResults() {
                     {tab === 'summary' && (
                         <div className="flex flex-col px-4 gap-4">
                             <WarningBanner />
+                            <ScanAgainButton />
                             <PhotoViewer />
                             <AnalysisResultCard />
                             <BackToHome />
@@ -55,17 +57,25 @@ export default function ScanResults() {
 
                     {tab === 'details' && (
                         <div className="flex flex-col gap-4 w-full mt-6">
+                            <div className="px-4">
+                                <ScanAgainButton />
+                            </div>
                             <ThumbTabs />
                             <div className="px-4 flex flex-col justify-center gap-4 w-full items-center">
                                 <MediaInspectionCard />
                                 <AnalysisTile />
+                            </div>
+                            <div className="px-4">
+                                <BackToHome />
                             </div>
                         </div>
                     )}
 
                     {tab === 'history' && (
                         <div className="flex flex-col gap-4 px-4 w-full mt-6">
+                            <ScanAgainButton />
                             <ChartCard />
+                            <BackToHome />
                         </div>
                     )}
                 </div>

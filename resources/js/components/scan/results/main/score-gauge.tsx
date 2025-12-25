@@ -1,21 +1,27 @@
 import React from "react";
 
 type Props = {
-    value?: number;
+    normalCount?: number;
+    abnormalCount?: number;
+    totalCount?: number;
     label?: string;
+    avgConfidence?: number;
     size?: number;
     outerWidth?: number;
     innerWidth?: number;
 };
 
 const ScoreGauge: React.FC<Props> = ({
-    value = 80,
+    normalCount = 0,
+    abnormalCount = 0,
+    totalCount = 0,
     label = "Sehat",
+    avgConfidence = 0,
     size = 240,
     outerWidth = 14,
     innerWidth = 14,
 }) => {
-    const pct = Math.max(0, Math.min(100, value));
+    const pct = totalCount > 0 ? Math.round((normalCount / totalCount) * 100) : 0;
     const edgeFeatherPct = 0;
     const tailPct = 100;
     const oversample = 2;
@@ -84,15 +90,21 @@ const ScoreGauge: React.FC<Props> = ({
                 <div className="leading-tight">
                     <div
                         className="font-extrabold"
-                        style={{ fontSize: Math.round(size * 0.19), color: "#0f172a", lineHeight: 1 }}
+                        style={{ fontSize: Math.round(size * 0.2), color: "#0f172a", lineHeight: 1 }}
                     >
-                        {pct.toFixed(2).replace(".", ",")}
+                        {pct}%
                     </div>
                     <div
-                        className="mt-1 font-medium"
-                        style={{ fontSize: Math.round(size * 0.08), color: "#0f172aB3" }}
+                        className="mt-2 font-semibold"
+                        style={{ fontSize: Math.round(size * 0.075), color: "#0f172aB3" }}
                     >
-                        {label}
+                        Area Normal
+                    </div>
+                    <div
+                        className="mt-1.5 font-normal"
+                        style={{ fontSize: Math.round(size * 0.055), color: "#94a3b8" }}
+                    >
+                        Keyakinan: {(avgConfidence / 100).toFixed(2)}
                     </div>
                 </div>
             </div>

@@ -11,10 +11,14 @@ export type ScanResultContextValue = {
     result: ScanResultPayload | null;
     details: ScanResultDetailPayload[];
     heroImage: string;
+    heroImageRemoveBg: string | null;
     activeArea: string | null;
     setActiveArea: (next: string) => void;
     summary: {
         abnormalCount: number;
+        normalCount: number;
+        totalCount: number;
+        normalPercent: number;
         remark: string;
         averageConfidence: number;
         averagePercent: number;
@@ -62,6 +66,18 @@ export const ScanResultProvider: React.FC<{
         [orderedDetails]
     );
 
+    const normalCount = useMemo(
+        () => orderedDetails.filter((detail) => (detail.label ?? '').toLowerCase() === 'normal').length,
+        [orderedDetails]
+    );
+
+    const totalCount = useMemo(() => orderedDetails.length, [orderedDetails]);
+
+    const normalPercent = useMemo(() => {
+        if (!totalCount) return 0;
+        return Math.round((normalCount / totalCount) * 10000) / 100;
+    }, [normalCount, totalCount]);
+
     const averageConfidence = useMemo(() => {
         if (!orderedDetails.length) return 0;
         const total = orderedDetails.reduce((sum, detail) => sum + (detail.confidence_score ?? 0), 0);
@@ -76,15 +92,21 @@ export const ScanResultProvider: React.FC<{
         session.images?.[0]?.img_original_url ??
         FALLBACK_IMAGE;
 
+    const heroImageRemoveBg = session.images?.[0]?.img_remove_bg_url ?? null;
+
     const value = useMemo<ScanResultContextValue>(() => ({
         session,
         result: result ?? null,
         details: orderedDetails,
         heroImage,
+        heroImageRemoveBg,
         activeArea,
         setActiveArea,
         summary: {
             abnormalCount,
+            normalCount,
+            totalCount,
+            normalPercent,
             remark: summaryRemark,
             averageConfidence,
             averagePercent: Math.round(averageConfidence * 10000) / 100,
@@ -95,8 +117,12 @@ export const ScanResultProvider: React.FC<{
         result,
         orderedDetails,
         heroImage,
+        heroImageRemoveBg,
         activeArea,
         abnormalCount,
+        normalCount,
+        totalCount,
+        normalPercent,
         summaryRemark,
         averageConfidence,
     ]);
