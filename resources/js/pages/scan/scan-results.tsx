@@ -19,11 +19,18 @@ import type { ScanResultPayload, ScanSessionPayload } from '@/types/scan-result'
 type ScanResultsPageProps = {
     session: ScanSessionPayload;
     result: ScanResultPayload | null;
+    catId?: string | null;
+    historyData?: Array<{
+        date: string;
+        normalCount: number;
+        totalCount: number;
+        percentage: number;
+    }>;
 };
 
 export default function ScanResults() {
     const route = useRoute();
-    const { session, result } = usePage<ScanResultsPageProps>().props;
+    const { session, result, catId, historyData } = usePage<ScanResultsPageProps>().props;
     const params = new URLSearchParams(window.location.search);
     const tab = (params.get('tabs') as 'summary' | 'details' | 'history') ?? 'summary';
     const resultsBaseUrl = useMemo(() => `${route('scan.results')}?session=${session.id}`, [route, session.id]);
@@ -74,7 +81,7 @@ export default function ScanResults() {
                     {tab === 'history' && (
                         <div className="flex flex-col gap-4 px-4 w-full mt-6">
                             <ScanAgainButton />
-                            <ChartCard />
+                            <ChartCard catId={catId} historyData={historyData} />
                             <BackToHome />
                         </div>
                     )}
