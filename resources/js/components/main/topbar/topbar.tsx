@@ -29,25 +29,27 @@ export default function Topbar() {
                 ${scrolled ? 'backdrop-blur-md shadow-md' : 'bg-transparent shadow-none backdrop-blur-none'}
             `}
         >
-            <div className='flex flex-row justify-between w-full h-12 items-center'>
-                <button onClick={toggleSidebar} className="w-10 h-full">
+            <div className='relative flex flex-row justify-between w-full h-12 items-center'>
+                {/* Left: Sidebar Toggle */}
+                <button onClick={toggleSidebar} className="w-10 h-full z-10">
                     <figure className='flex justify-center items-center'>
                         <img src="/images/icon/sidebar-outline.svg" alt="ResCat" className="h-full w-auto object-contain" />
                     </figure>
                 </button>
 
-                <Link href={route('home')}>
+                {/* Center: Logo (Absolute positioned) */}
+                <Link href={route('home')} className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-0">
                     <figure>
                         <img src="/images/icon/logo-rescat.svg" alt="ResCat" className="h-full w-auto object-contain" />
                     </figure>
                 </Link>
 
-                {/* Conditional button: Login for guests, Premium for logged-in users */}
+                {/* Right: Conditional button */}
                 {!auth?.user ? (
                     // Guest: Simple Login Button
                     <Link
                         href={route('login')}
-                        className={`${isOpen ? 'pointer-events-none opacity-0' : ''} group relative px-4 py-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 ease-out overflow-hidden`}
+                        className={`${isOpen ? 'pointer-events-none opacity-0' : ''} group relative px-4 py-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 ease-out overflow-hidden z-10`}
                     >
                         <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-blue-400 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
                         <span className="relative flex items-center gap-2 text-sm">
@@ -59,7 +61,7 @@ export default function Topbar() {
                     // Logged-in: Premium Button with original icon
                     <Link
                         href={route('dashboard')}
-                        className="w-10 h-full hover:scale-110 transition-transform duration-200"
+                        className="w-10 h-full hover:scale-110 transition-transform duration-200 z-10"
                     >
                         <figure className="flex justify-center items-center h-full">
                             <img 
