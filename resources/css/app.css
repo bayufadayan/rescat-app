@@ -166,9 +166,64 @@
         background-color: rgba(0, 0, 0, 0.6);
     }
 
+    .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+    }
+
     @supports (overscroll-behavior: contain) {
         .overscroll-contain {
             overscroll-behavior: contain;
         }
+    }
+
+    /* Image zoom modal slide animations */
+    @keyframes slide-in {
+        from {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    @keyframes slide-out-left {
+        from {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        to {
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+    }
+
+    @keyframes slide-out-right {
+        from {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        to {
+            opacity: 0;
+            transform: translateX(20px);
+        }
+    }
+
+    .animate-slide-in {
+        animation: slide-in 300ms ease-out;
+    }
+
+    .animate-slide-out-left {
+        animation: slide-out-left 300ms ease-out;
+    }
+
+    .animate-slide-out-right {
+        animation: slide-out-right 300ms ease-out;
     }
 }

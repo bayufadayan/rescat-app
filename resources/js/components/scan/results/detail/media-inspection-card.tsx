@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react'
 import MediaViewer from './inspection/media-viewer'
 import MetaRow from './inspection/meta-row'
-import NotesTextArea from './inspection/notes-text-area'
 import { useScanResultContext } from '@/contexts/scan-result-context'
 
 export default function MediaInspectionCard() {
@@ -16,10 +15,9 @@ export default function MediaInspectionCard() {
 
     return (
         <div className='px-4 py-4 rounded-2xl overflow-hidden shadow-md bg-white flex flex-col w-full gap-4'>
-            <h3 className='text-[#074DE5] font-bold text-center'>Hasil Analisis</h3>
+            <h3 className='text-[#074DE5] font-bold text-center text-lg'>Hasil Analisis</h3>
             <MediaViewer detail={activeDetail} areaLabel={label} />
             <MetaRow detail={activeDetail} areaLabel={label} />
-            <NotesTextArea detail={activeDetail} areaLabel={label} />
         </div>
     )
 }

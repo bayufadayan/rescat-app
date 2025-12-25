@@ -13,7 +13,6 @@ type Props = {
 
 const ScoreGauge: React.FC<Props> = ({
     normalCount = 0,
-    abnormalCount = 0,
     totalCount = 0,
     label = "Sehat",
     avgConfidence = 0,
@@ -99,6 +98,12 @@ const ScoreGauge: React.FC<Props> = ({
                         style={{ fontSize: Math.round(size * 0.075), color: "#0f172aB3" }}
                     >
                         Area Normal
+                    </div>
+                    <div
+                        className="mt-0.5 font-medium italic"
+                        style={{ fontSize: Math.round(size * 0.055), color: "#94a3b8" }}
+                    >
+                        {label}
                     </div>
                     <div
                         className="mt-1.5 font-normal"
