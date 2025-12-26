@@ -3,6 +3,7 @@
 use App\Http\Controllers\AppStartController;
 use App\Http\Controllers\ScanController;
 use App\Http\Controllers\ScanReportController;
+use App\Http\Controllers\PetcareController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -35,11 +36,13 @@ Route::prefix('scan')->group(function () {
 // Scan Report Download
 Route::get('/scan-reports/{sessionId}/download', [ScanReportController::class, 'download'])
     ->name('scan.reports.download');
+
+// Petcares
 Route::prefix('petcares')->group(function () {
-    Route::get('/', function () {
-        return Inertia::render('splash');
-    })->name('petcares');
+    Route::get('/', [PetcareController::class, 'index'])->name('petcares');
+    Route::get('/{id}', [PetcareController::class, 'show'])->name('petcares.show');
 });
+
 Route::prefix('articles')->group(function () {
     Route::get('/', function () {
         return Inertia::render('splash');

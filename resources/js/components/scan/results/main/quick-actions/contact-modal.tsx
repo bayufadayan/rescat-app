@@ -1,5 +1,6 @@
 // src/components/scan/results/main/quick-actions/contact-modal.tsx
 import React, { useEffect, useState } from 'react';
+import { router } from '@inertiajs/react';
 import {
     Dialog,
     DialogContent,
@@ -8,7 +9,7 @@ import {
     DialogDescription,
     DialogClose,
 } from '@/components/ui/dialog';
-import { Phone, MessageCircle, Loader2, MapPin } from 'lucide-react';
+import { Phone, MessageCircle, Loader2, MapPin, ChevronRight } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { normalizePhone } from '@/lib/helper/phone';
 import axios from 'axios';
@@ -185,6 +186,18 @@ export default function ContactModal({ open, onOpenChange }: Props) {
                                                     </TooltipContent>
                                                 </Tooltip>
                                             </div>
+
+                                            {/* Detail Button */}
+                                            <button
+                                                onClick={() => {
+                                                    onOpenChange(false);
+                                                    router.visit(`/petcares/${c.id}`);
+                                                }}
+                                                className="w-full mt-2 inline-flex items-center justify-center gap-1.5 h-9 rounded-lg border-2 border-[#0D99FF] text-[#0D99FF] hover:bg-blue-50 active:scale-[0.98] transition-colors"
+                                            >
+                                                <span className="text-xs font-medium">Lihat Detail</span>
+                                                <ChevronRight className="h-4 w-4" />
+                                            </button>
                                         </li>
                                     );
                                 })}
@@ -194,6 +207,15 @@ export default function ContactModal({ open, onOpenChange }: Props) {
                 </div>
 
                 <div className="sticky bottom-0 w-full bg-white/95 px-5 pb-5 pt-3 backdrop-blur">
+                    <button
+                        onClick={() => {
+                            onOpenChange(false);
+                            router.visit('/petcares');
+                        }}
+                        className="w-full mb-2 rounded-xl bg-gradient-to-r from-[#0D99FF] to-[#0066cc] text-white py-2.5 text-sm font-medium hover:shadow-lg active:scale-[0.98] transition-all"
+                    >
+                        Lihat Semua Petcare
+                    </button>
                     <DialogClose asChild>
                         <button
                             type="button"

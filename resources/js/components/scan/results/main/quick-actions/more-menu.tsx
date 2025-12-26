@@ -1,8 +1,9 @@
 // src/components/scan/results/main/quick-actions/more-menu.tsx
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { router } from '@inertiajs/react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import MoreButton from './action-more-menu';
-import { Share2, MapPin, BookOpen, MessageSquare, Loader2 } from 'lucide-react';
+import { Share2, MapPin, BookOpen, MessageSquare, Loader2, ChevronRight } from 'lucide-react';
 import ShareModal from './share-modal';
 import axios from 'axios';
 
@@ -40,14 +41,7 @@ export default function MoreMenu() {
 
     const currentUrl = useMemo(() => (typeof window !== 'undefined' ? window.location.href : ''), []);
 
-    // Fetch petcares when maps panel is shown
-    useEffect(() => {
-        if (showMaps && petcares.length === 0) {
-            fetchPetcares();
-        }
-    }, [showMaps]);
-
-    const fetchPetcares = async () => {
+    const fetchPetcares = useCallback(async () => {
         setIsLoading(true);
         
         try {
@@ -83,7 +77,14 @@ export default function MoreMenu() {
             console.error('Error fetching petcares:', error);
             setIsLoading(false);
         }
-    };
+    }, []);
+
+    // Fetch petcares when maps panel is shown
+    useEffect(() => {
+        if (showMaps && petcares.length === 0) {
+            fetchPetcares();
+        }
+    }, [showMaps, petcares.length, fetchPetcares]);
 
     return (
         <>
@@ -191,16 +192,26 @@ export default function MoreMenu() {
                                                         </span>
                                                     )}
                                                 </div>
-                                                <div className="mt-2">
+                                                <div className="mt-2 flex items-center gap-2">
                                                     <a
                                                         href={href}
                                                         target="_blank"
                                                         rel="noreferrer"
-                                                        className="inline-flex items-center gap-1.5 rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-medium text-white hover:brightness-[1.05] active:scale-[0.98]"
+                                                        className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-medium text-white hover:brightness-[1.05] active:scale-[0.98]"
                                                     >
                                                         <MapPin className="h-3.5 w-3.5" />
                                                         Buka Maps
                                                     </a>
+                                                    <button
+                                                        onClick={() => {
+                                                            setOpen(false);
+                                                            router.visit(`/petcares/${p.id}`);
+                                                        }}
+                                                        className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border-2 border-[#0D99FF] bg-white px-3 py-1.5 text-xs font-medium text-[#0D99FF] hover:bg-blue-50 active:scale-[0.98]"
+                                                    >
+                                                        Lihat Detail
+                                                        <ChevronRight className="h-3.5 w-3.5" />
+                                                    </button>
                                                 </div>
                                             </li>
                                         );
