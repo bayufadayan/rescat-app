@@ -28,6 +28,9 @@ class PetcareSeeder extends Seeder
                     'saturday' => '09:00 - 17:00',
                     'sunday' => 'Tutup',
                 ],
+                'vet_name' => 'Dr. Budi Santoso, drh.',
+                'vet_phone' => '+62 812-3456-7890',
+                'vet_specialization' => 'Kucing & Anjing',
             ],
             [
                 'name' => 'Pet Care Indonesia',
@@ -44,6 +47,9 @@ class PetcareSeeder extends Seeder
                     'saturday' => '09:00 - 18:00',
                     'sunday' => '10:00 - 16:00',
                 ],
+                'vet_name' => 'Dr. Siti Nurhaliza, drh.',
+                'vet_phone' => '+62 813-1111-2222',
+                'vet_specialization' => 'Kucing',
             ],
             [
                 'name' => 'Veterinary Clinic Bandung',
@@ -60,6 +66,9 @@ class PetcareSeeder extends Seeder
                     'saturday' => '09:00 - 15:00',
                     'sunday' => 'Tutup',
                 ],
+                'vet_name' => 'Dr. Ahmad Hidayat, drh., M.Si.',
+                'vet_phone' => '+62 821-3333-4444',
+                'vet_specialization' => 'Hewan Kecil',
             ],
             [
                 'name' => 'Klinik Hewan Surabaya Prima',
@@ -76,6 +85,9 @@ class PetcareSeeder extends Seeder
                     'saturday' => '08:00 - 17:00',
                     'sunday' => '09:00 - 15:00',
                 ],
+                'vet_name' => 'Dr. Rina Wijaya, drh.',
+                'vet_phone' => '+62 838-5555-6666',
+                'vet_specialization' => 'Kucing & Anjing',
             ],
             [
                 'name' => 'Animal Care Yogyakarta',
@@ -92,6 +104,9 @@ class PetcareSeeder extends Seeder
                     'saturday' => '09:00 - 16:00',
                     'sunday' => 'Tutup',
                 ],
+                'vet_name' => 'Dr. Hendra Saputra, drh.',
+                'vet_phone' => '+62 819-7777-8888',
+                'vet_specialization' => 'Bedah & Gigi',
             ],
             [
                 'name' => 'Klinik Hewan Bali Pet',
@@ -108,8 +123,14 @@ class PetcareSeeder extends Seeder
                     'saturday' => '09:00 - 21:00',
                     'sunday' => '10:00 - 18:00',
                 ],
+                'vet_name' => 'Dr. Made Suryawan, drh.',
+                'vet_phone' => '+62 811-9999-0000',
+                'vet_specialization' => 'Kucing',
             ],
         ];
+
+        // Hapus data lama jika ada
+        \App\Models\Petcare::truncate();
 
         foreach ($petcares as $petcare) {
             \App\Models\Petcare::create($petcare);

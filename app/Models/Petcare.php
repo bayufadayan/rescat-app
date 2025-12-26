@@ -18,6 +18,9 @@ class Petcare extends Model
         'latitude',
         'longitude',
         'opening_hours',
+        'vet_name',
+        'vet_phone',
+        'vet_specialization',
     ];
 
     protected $casts = [

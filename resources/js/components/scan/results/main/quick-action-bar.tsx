@@ -6,7 +6,6 @@ import ReportButton from './quick-actions/action-report-button';
 import MoreMenu from './quick-actions/more-menu';
 import ContactModal from './quick-actions/contact-modal';
 import ReportModal from './quick-actions/report-modal';
-import vetContacts from '@/constants/vet-contacts-data';
 import { useScanResultContext } from '@/contexts/scan-result-context';
 
 export default function QuickActionBar() {
@@ -32,7 +31,6 @@ export default function QuickActionBar() {
             <ContactModal
                 open={openContacts}
                 onOpenChange={setOpenContacts}
-                contacts={vetContacts}
             />
 
             {/* Modal report hasil pemeriksaan */}
