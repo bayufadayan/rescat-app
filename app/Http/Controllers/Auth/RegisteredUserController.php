@@ -14,6 +14,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
+use App\Models\ScanSession;
 
 class RegisteredUserController extends Controller
 {
@@ -57,6 +58,14 @@ class RegisteredUserController extends Controller
         event(new Registered($user));
 
         Auth::login($user);
+
+        // Transfer guest scan sessions dari localStorage ke user baru
+        if ($request->has('session_ids') && is_array($request->input('session_ids'))) {
+            $sessionIds = $request->input('session_ids');
+            ScanSession::whereIn('id', $sessionIds)
+                ->whereNull('user_id')
+                ->update(['user_id' => $user->id]);
+        }
 
         return redirect()->route('verification.notice');
     }

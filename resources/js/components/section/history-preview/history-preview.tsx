@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import { ChevronRight, Clock } from 'lucide-react';
 import { scanSessionStorage, type StoredScanSession } from '@/lib/helper/scan-session-storage';
-import axios from 'axios';
+import axios from '@/lib/axios';
 
 type PageProps = {
     auth?: {
@@ -17,40 +17,46 @@ export default function HistoryPreview() {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
+        let cancelled = false;
+
         const fetchSessions = async () => {
             setIsLoading(true);
-            
-            if (auth?.user) {
-                // For authenticated users, fetch from API
-                try {
+
+            try {
+                if (auth?.user) {
                     const response = await axios.get('/api/scan/sessions');
-                    if (response.data.ok) {
-                        setSessions(response.data.sessions.slice(0, 4)); // Show max 4
+                    if (!cancelled) {
+                        setSessions(response.data.ok ? response.data.sessions.slice(0, 4) : []);
                     }
-                } catch (error) {
-                    console.error('Error fetching sessions:', error);
-                } finally {
-                    setIsLoading(false);
-                }
-            } else {
-                // For guests, get session IDs from localStorage then fetch from API
-                try {
+                } else {
                     const sessionIds = scanSessionStorage.getSessionIds().slice(0, 4);
-                    const sessionPromises = sessionIds.map(id => 
-                        axios.get(`/api/scan/session/${id}`).then(res => res.data.ok ? res.data.session : null)
+                    if (sessionIds.length === 0) {
+                        if (!cancelled) setSessions([]);
+                        return;
+                    }
+
+                    const sessionPromises = sessionIds.map((id) =>
+                        axios.get(`/api/scan/session/${id}`).then((res) => res.data.ok ? res.data.session : null)
                     );
                     const results = await Promise.all(sessionPromises);
-                    setSessions(results.filter(Boolean)); // Remove nulls
-                } catch (error) {
-                    console.error('Error fetching guest sessions:', error);
-                } finally {
-                    setIsLoading(false);
+                    if (!cancelled) {
+                        setSessions(results.filter(Boolean));
+                    }
                 }
+            } catch (error) {
+                console.error('Error fetching sessions:', error);
+                if (!cancelled) setSessions([]);
+            } finally {
+                if (!cancelled) setIsLoading(false);
             }
         };
 
         fetchSessions();
-    }, [auth]);
+
+        return () => {
+            cancelled = true;
+        };
+    }, [auth?.user?.id]);
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);

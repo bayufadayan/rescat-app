@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import { ChevronRight, ScanLine } from 'lucide-react';
 import { scanSessionStorage, type StoredScanSession } from '@/lib/helper/scan-session-storage';
-import axios from 'axios';
+import axios from '@/lib/axios';
 
 type PageProps = {
     auth?: {
@@ -17,41 +17,49 @@ export default function LastCheck() {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
+        let cancelled = false;
+
         const fetchLastSession = async () => {
             setIsLoading(true);
-            
-            if (auth?.user) {
-                // For authenticated users, fetch from API
-                try {
+            console.log('🔍 [LastCheck] Fetching...', { hasUser: !!auth?.user, userId: auth?.user?.id });
+
+            try {
+                if (auth?.user) {
+                    console.log('🔍 [LastCheck] User authenticated, fetching from API');
                     const response = await axios.get('/api/scan/sessions');
-                    if (response.data.ok && response.data.sessions.length > 0) {
-                        setLastSession(response.data.sessions[0]);
+                    console.log('✅ [LastCheck] API Response:', response.data);
+                    if (!cancelled) {
+                        setLastSession(response.data.ok && response.data.sessions.length > 0 ? response.data.sessions[0] : null);
                     }
-                } catch (error) {
-                    console.error('Error fetching sessions:', error);
-                } finally {
-                    setIsLoading(false);
-                }
-            } else {
-                // For guests, get session ID from localStorage then fetch from API
-                try {
+                } else {
+                    console.log('🔍 [LastCheck] Guest mode, fetching from localStorage');
                     const sessionId = scanSessionStorage.getLatestSessionId();
-                    if (sessionId) {
-                        const response = await axios.get(`/api/scan/session/${sessionId}`);
-                        if (response.data.ok) {
-                            setLastSession(response.data.session);
-                        }
+                    if (!sessionId) {
+                        console.log('⚠️ [LastCheck] No session ID in localStorage');
+                        if (!cancelled) setLastSession(null);
+                        return;
                     }
-                } catch (error) {
-                    console.error('Error fetching guest session:', error);
-                } finally {
-                    setIsLoading(false);
+
+                    const response = await axios.get(`/api/scan/session/${sessionId}`);
+                    console.log('✅ [LastCheck] Guest API Response:', response.data);
+                    if (!cancelled && response.data.ok) {
+                        setLastSession(response.data.session);
+                    }
                 }
+            } catch (error) {
+                console.error('❌ [LastCheck] Error fetching sessions:', error);
+                if (!cancelled) setLastSession(null);
+            } finally {
+                if (!cancelled) setIsLoading(false);
             }
         };
 
         fetchLastSession();
-    }, [auth]);
+
+        return () => {
+            cancelled = true;
+        };
+    }, [auth?.user?.id]);
 
     const handleViewResult = () => {
         if (lastSession) {

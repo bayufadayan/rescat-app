@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { useRoute } from 'ziggy-js';
 import { getGuestAvatarSeed, clearGuestAvatarSeed } from '@/lib/avatar-utils';
 import { useEffect } from 'react';
+import { scanSessionStorage } from '@/lib/helper/scan-session-storage';
 
 export default function Signup() {
     const route = useRoute();
@@ -40,6 +41,10 @@ export default function Signup() {
                 {...RegisteredUserController.store.form()}
                 resetOnSuccess={['password', 'password_confirmation']}
                 disableWhileProcessing
+                onSuccess={() => {
+                    // Clear scan sessions after successful register
+                    scanSessionStorage.clearSessions();
+                }}
                 onBefore={() => {
                     // Inject avatar seed sebelum submit
                     const seed = getGuestAvatarSeed();
@@ -48,7 +53,8 @@ export default function Signup() {
                 }}
                 transform={(data) => ({
                     ...data,
-                    avatar_seed: getGuestAvatarSeed(), // Kirim seed ke backend
+                    avatar_seed: getGuestAvatarSeed(),
+                    session_ids: scanSessionStorage.getSessionIds(),
                 })}
                 className="flex flex-col gap-6 w-full ">
                 {({ processing, errors }) => (

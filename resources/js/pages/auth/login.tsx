@@ -18,6 +18,7 @@ import { LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useRoute } from 'ziggy-js';
 import { getGuestAvatarSeed, clearGuestAvatarSeed } from '@/lib/avatar-utils';
+import { scanSessionStorage } from '@/lib/helper/scan-session-storage';
 
 interface LoginProps {
     status?: string;
@@ -49,9 +50,14 @@ export default function Login({ status, canResetPassword }: LoginProps) {
             <Form {
                 ...AuthenticatedSessionController.store.form()}
                 resetOnSuccess={['password']}
+                onSuccess={() => {
+                    // Clear scan sessions after successful login
+                    scanSessionStorage.clearSessions();
+                }}
                 transform={(data) => ({
                     ...data,
                     avatar_seed: getGuestAvatarSeed(),
+                    session_ids: scanSessionStorage.getSessionIds(),
                 })}
                 className="flex flex-col gap-6 w-full ">
                 {({ processing, errors }) => (

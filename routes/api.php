@@ -28,8 +28,8 @@ Route::get('/petcares', [PetcareController::class, 'index'])->name('api.petcares
 // Public endpoint for guest to fetch session by ID
 Route::get('/scan/session/{id}', [ScanController::class, 'getSessionById'])->name('api.scan.session');
 
-// Scan sessions for authenticated users
-Route::middleware('auth')->group(function () {
+// Scan sessions for authenticated users - using 'web' middleware to share session cookies
+Route::middleware(['web', 'auth'])->group(function () {
     Route::post('/scan/transfer-sessions', [ScanController::class, 'transferGuestSessions'])->name('api.scan.transfer');
     Route::get('/scan/sessions', [ScanController::class, 'getUserSessions'])->name('api.scan.sessions');
 });

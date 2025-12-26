@@ -1,6 +1,6 @@
 // Helper untuk auto-transfer guest sessions ke user setelah login/register
 import { scanSessionStorage } from '@/lib/helper/scan-session-storage';
-import axios from 'axios';
+import axios from '@/lib/axios';
 
 export const transferGuestSessions = async (): Promise<void> => {
     const sessionIds = scanSessionStorage.getSessionIds();
