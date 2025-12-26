@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AppStartController;
 use App\Http\Controllers\ScanController;
+use App\Http\Controllers\ScanReportController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -30,6 +31,10 @@ Route::prefix('scan')->group(function () {
     Route::get('/removebg-server', [ScanController::class, 'removebgServerPage'])->name('scan.removebg.server');
     Route::post('/removebg-server/process', [ScanController::class, 'removeBgServerProcess'])->name('scan.removebg.server.process');
 });
+
+// Scan Report Download
+Route::get('/scan-reports/{sessionId}/download', [ScanReportController::class, 'download'])
+    ->name('scan.reports.download');
 Route::prefix('petcares')->group(function () {
     Route::get('/', function () {
         return Inertia::render('splash');
