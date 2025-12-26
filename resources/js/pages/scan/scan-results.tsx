@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import ResultHeader from '@/components/scan/results/main/header';
@@ -14,6 +14,7 @@ import AnalysisTile from '@/components/scan/results/detail/analysis-tile';
 import ChartCard from '@/components/scan/results/history/chart-card';
 import { useRoute } from 'ziggy-js';
 import { ScanResultProvider } from '@/contexts/scan-result-context';
+import { scanSessionStorage } from '@/lib/helper/scan-session-storage';
 import type { ScanResultPayload, ScanSessionPayload } from '@/types/scan-result';
 
 type ScanResultsPageProps = {
@@ -26,14 +27,28 @@ type ScanResultsPageProps = {
         totalCount: number;
         percentage: number;
     }>;
+    auth?: {
+        user: {
+            id: string;
+            name: string;
+            email: string;
+        } | null;
+    };
 };
 
 export default function ScanResults() {
     const route = useRoute();
-    const { session, result, catId, historyData } = usePage<ScanResultsPageProps>().props;
+    const { session, result, catId, historyData, auth } = usePage<ScanResultsPageProps>().props;
     const params = new URLSearchParams(window.location.search);
     const tab = (params.get('tabs') as 'summary' | 'details' | 'history') ?? 'summary';
     const resultsBaseUrl = useMemo(() => `${route('scan.results')}?session=${session.id}`, [route, session.id]);
+
+    // Save session ID to localStorage for guest users
+    useEffect(() => {
+        if (!auth?.user && session) {
+            scanSessionStorage.saveSessionId(session.id);
+        }
+    }, [session, auth]);
 
     const changeTab = (next: 'summary' | 'details' | 'history') => {
         const url = `${resultsBaseUrl}&tabs=${next}`;

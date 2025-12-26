@@ -880,4 +880,158 @@ PROMPT;
             ], 500);
         }
     }
+
+    /**
+     * Transfer guest scan sessions to authenticated user
+     */
+    public function transferGuestSessions(Request $request): JsonResponse
+    {
+        $request->validate([
+            'session_ids' => 'required|array',
+            'session_ids.*' => 'required|string',
+        ]);
+
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'User not authenticated',
+            ], 401);
+        }
+
+        $sessionIds = $request->input('session_ids');
+        $transferredCount = 0;
+
+        foreach ($sessionIds as $sessionId) {
+            $session = ScanSession::find($sessionId);
+            
+            if ($session && !$session->user_id) {
+                // Only transfer if session exists and doesn't have user_id yet
+                $session->user_id = $user->id;
+                $session->save();
+                $transferredCount++;
+            }
+        }
+
+        return response()->json([
+            'ok' => true,
+            'transferred_count' => $transferredCount,
+            'message' => "Berhasil menghubungkan {$transferredCount} riwayat scan ke akun Anda.",
+        ]);
+    }
+
+    /**
+     * Get user's scan sessions for homepage
+     */
+    public function getUserSessions(): JsonResponse
+    {
+        $user = Auth::user();
+        
+        if (!$user) {
+            return response()->json([
+                'ok' => true,
+                'sessions' => [],
+            ]);
+        }
+
+        $sessions = ScanSession::where('user_id', $user->id)
+            ->with(['images', 'result.details'])
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get()
+            ->map(function ($session) {
+                // Get first image from scanImages
+                $firstImage = $session->images->first();
+                $imageUrl = $firstImage ? ($firstImage->img_remove_bg_url ?? $firstImage->img_roi_url ?? $firstImage->img_original_url) : null;
+                
+                // Collect details; fallback to result status when details empty
+                $allDetails = [];
+                if ($session->result) {
+                    $result = $session->result;
+                    if ($result->details->count() > 0) {
+                        foreach ($result->details as $detail) {
+                            $allDetails[] = [
+                                'area_name' => $detail->area_name,
+                                'label' => $detail->label,
+                                'confidence_score' => $detail->confidence_score,
+                            ];
+                        }
+                    } else {
+                        $allDetails[] = [
+                            'area_name' => $result->remarks ?? 'area',
+                            'label' => $result->remarks ?? 'unknown',
+                            'confidence_score' => null,
+                        ];
+                    }
+                }
+                
+                return [
+                    'id' => $session->id,
+                    'checkup_type' => $session->checkup_type,
+                    'created_at' => $session->created_at->toISOString(),
+                    'scan_images_count' => $session->images->count(),
+                    'results_count' => count($allDetails),
+                    'image_url' => $imageUrl,
+                    'remarks' => $session->result?->remarks,
+                    'results' => $allDetails,
+                ];
+            });
+
+        return response()->json([
+            'ok' => true,
+            'sessions' => $sessions,
+        ]);
+    }
+
+    public function getSessionById(string $sessionId): JsonResponse
+    {
+        $session = ScanSession::with(['images', 'result.details'])
+            ->find($sessionId);
+
+        if (!$session) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Session not found',
+            ], 404);
+        }
+
+        // Get first image from scanImages
+        $firstImage = $session->images->first();
+        $imageUrl = $firstImage ? ($firstImage->img_remove_bg_url ?? $firstImage->img_roi_url ?? $firstImage->img_original_url) : null;
+        
+        // Collect details; fallback to result status when details empty
+        $allDetails = [];
+        if ($session->result) {
+            $result = $session->result;
+            if ($result->details->count() > 0) {
+                foreach ($result->details as $detail) {
+                    $allDetails[] = [
+                        'area_name' => $detail->area_name,
+                        'label' => $detail->label,
+                        'confidence_score' => $detail->confidence_score,
+                    ];
+                }
+            } else {
+                $allDetails[] = [
+                    'area_name' => $result->remarks ?? 'area',
+                    'label' => $result->remarks ?? 'unknown',
+                    'confidence_score' => null,
+                ];
+            }
+        }
+        
+        return response()->json([
+            'ok' => true,
+            'session' => [
+                'id' => $session->id,
+                'checkup_type' => $session->checkup_type,
+                'created_at' => $session->created_at->toISOString(),
+                'scan_images_count' => $session->images->count(),
+                'results_count' => count($allDetails),
+                'image_url' => $imageUrl,
+                'remarks' => $session->result?->remarks,
+                'results' => $allDetails,
+            ],
+        ]);
+    }
 }

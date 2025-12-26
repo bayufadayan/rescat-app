@@ -1,48 +1,191 @@
-import React from 'react';
-import { Link } from '@inertiajs/react';
-import { ChevronRight } from 'lucide-react'
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState, useEffect } from 'react';
+import { router, usePage } from '@inertiajs/react';
+import { ChevronRight, ScanLine } from 'lucide-react';
+import { scanSessionStorage, type StoredScanSession } from '@/lib/helper/scan-session-storage';
+import axios from 'axios';
+
+type PageProps = {
+    auth?: {
+        user: any;
+    };
+};
 
 export default function LastCheck() {
+    const { auth } = usePage<PageProps>().props;
+    const [lastSession, setLastSession] = useState<StoredScanSession | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchLastSession = async () => {
+            setIsLoading(true);
+            
+            if (auth?.user) {
+                // For authenticated users, fetch from API
+                try {
+                    const response = await axios.get('/api/scan/sessions');
+                    if (response.data.ok && response.data.sessions.length > 0) {
+                        setLastSession(response.data.sessions[0]);
+                    }
+                } catch (error) {
+                    console.error('Error fetching sessions:', error);
+                } finally {
+                    setIsLoading(false);
+                }
+            } else {
+                // For guests, get session ID from localStorage then fetch from API
+                try {
+                    const sessionId = scanSessionStorage.getLatestSessionId();
+                    if (sessionId) {
+                        const response = await axios.get(`/api/scan/session/${sessionId}`);
+                        if (response.data.ok) {
+                            setLastSession(response.data.session);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error fetching guest session:', error);
+                } finally {
+                    setIsLoading(false);
+                }
+            }
+        };
+
+        fetchLastSession();
+    }, [auth]);
+
+    const handleViewResult = () => {
+        if (lastSession) {
+            router.visit(`/scan/results?session=${lastSession.id}`);
+        }
+    };
+
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString);
+        return new Intl.DateTimeFormat('id-ID', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        }).format(date);
+    };
+
+    const getCheckupLabel = (type: string) => {
+        const labels: Record<string, string> = {
+            'general': 'General Check-up',
+            'detail': 'Detail Check-up',
+            'face_only': 'Face-Only Check-up',
+        };
+        return labels[type] || 'Check-up';
+    };
+
+    const getStats = () => {
+        if (!lastSession?.results || lastSession.results.length === 0) return null;
+        const normal = lastSession.results.filter((r: any) => {
+            const lbl = (r.label || '').toString().toLowerCase();
+            return lbl === 'healthy' || lbl === 'sehat' || lbl === 'normal';
+        }).length;
+        const total = lastSession.results.length;
+        return {
+            normal,
+            abnormal: Math.max(total - normal, 0),
+            remarks: lastSession.remarks,
+        };
+    };
+
+    const stats = getStats();
+
+    if (isLoading) {
+        return (
+            <section className="flex flex-col w-full gap-2 px-4">
+                <div className='flex justify-between px-1'>
+                    <h3 className="font-semibold text-lg">Last Check</h3>
+                </div>
+                <div className="flex items-center justify-center w-full h-86 rounded-2xl shadow-md bg-gray-100">
+                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#0D99FF] border-t-transparent"></div>
+                </div>
+            </section>
+        );
+    }
+
+    if (!lastSession) {
+        return (
+            <section className="flex flex-col w-full gap-2 px-4">
+                <div className='flex justify-between px-1'>
+                    <h3 className="font-semibold text-lg">Last Check</h3>
+                </div>
+                <div className="flex flex-col items-center justify-center w-full h-86 rounded-2xl shadow-md bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-dashed border-blue-200">
+                    <ScanLine className="w-12 h-12 text-blue-300 mb-3" />
+                    <p className="text-gray-600 font-medium mb-1">Belum ada scan</p>
+                    <p className="text-sm text-gray-500 mb-4">Mulai scan pertama Anda sekarang</p>
+                    <button
+                        onClick={() => router.visit('/scan')}
+                        className="px-6 py-2 bg-gradient-to-r from-[#0D99FF] to-[#0066cc] text-white rounded-xl font-medium hover:shadow-lg transition-all active:scale-[0.98]"
+                    >
+                        Mulai Scan
+                    </button>
+                </div>
+            </section>
+        );
+    }
+
     return (
-        <section className="flex flex-col w-full gap-2 px-4" style={{ border: "1px solid rgba(255, 255, 255, 0.3)" }}>
+        <section className="flex flex-col w-full gap-2 px-4">
             <div className='flex justify-between px-1'>
                 <h3 className="font-semibold text-lg">Last Check</h3>
-
-                <Link href={"/scan/results"} className="flex gap-0.5 text-black/60 text-sm self-center items-center">
-                    Lainnya
+                <button 
+                    onClick={handleViewResult}
+                    className="flex gap-0.5 text-black/60 text-sm self-center items-center hover:text-[#0D99FF] transition-colors"
+                >
+                    Detail
                     <ChevronRight size={16} />
-                </Link>
+                </button>
             </div>
 
-            <div className="flex flex-col gap-2 relative w-full h-86 rounded-2xl shadow-md overflow-hidden">
-                <figure className="w-full h-full inset-0 relative">
-                    <img
-                        src="/images/dummy/cat-original.png"
-                        alt="cat-original"
-                        className="w-full h-full object-cover absolute inset-0"
+            <div 
+                onClick={handleViewResult}
+                className="flex flex-col gap-2 relative w-full h-86 rounded-2xl shadow-md overflow-hidden cursor-pointer group hover:shadow-xl transition-all"
+            >
+                {/* Background gradient */}
+                <div className="w-full h-full inset-0 absolute bg-gradient-to-br from-blue-400 via-indigo-500 to-purple-600"></div>
+
+                {/* Background image if available */}
+                {(lastSession as any).image_url && (
+                    <img 
+                        src={(lastSession as any).image_url} 
+                        alt="Scan result" 
+                        className="w-full h-full inset-0 absolute object-cover opacity-20"
                     />
-                    <img
-                        src="/images/dummy/cat-cropped-scan.png"
-                        alt="cat-cropped"
-                        className="w-full h-full object-cover absolute inset-0 animate-pulse"
-                    />
-                </figure>
+                )}
 
-                <div className="absolute -bottom-72 left-1/2 -translate-x-1/2 w-full rounded-full overflow-hidden px-6 py-2 bg-white/20 backdrop-blur-md shadow-lg border border-white/30 h-full scale-150 flex flex-col items-center">
-                    <span className="text-white font-semibold text-xl mt-5">Score: 92%</span>
-                    <span className="text-xs text-gray-200">(Good)</span>
-                </div>
+                {stats && (
+                    <div className="absolute bottom-6 left-6 right-6 flex flex-col gap-1 bg-white/20 backdrop-blur-md rounded-xl px-4 py-3 border border-white/30 shadow-md">
+                        <div className="flex items-center gap-2 text-white text-sm font-semibold">
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/80 text-white text-xs">Normal {stats.normal}</span>
+                            <span className="px-2 py-0.5 rounded-full bg-rose-500/80 text-white text-xs">Abnormal {stats.abnormal}</span>
+                        </div>
+                        {stats.remarks && (
+                            <p className="text-[12px] text-white/90 leading-snug">Catatan: {stats.remarks}</p>
+                        )}
+                    </div>
+                )}
 
-                <Link href={"/summary"}>
-                    <figure className='absolute bottom-6 right-6 w-6 h-6 overflow-hidden'>
-                        <img src="/images/icon/arrow.svg" alt="cat-profile" className="w-full h-full object-cover" />
-                    </figure>
-                </Link>
+                <button 
+                    onClick={handleViewResult}
+                    className="absolute bottom-6 right-6 w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center group-hover:bg-white/30 transition-all border border-white/30"
+                >
+                    <ChevronRight className="w-5 h-5 text-white" />
+                </button>
 
-                <div className='absolute top-4 right-4 px-4 py-1 rounded-full bg-white/20 backdrop-blur-md shadow-lg border border-white/30 text-xs !font-normal'>
-                    <span className="text-white text-xs">Face-Only check-up</span>
+                <div className='absolute top-4 left-4 right-4 flex flex-col gap-2'>
+                    <div className='px-4 py-1 rounded-full bg-white/20 backdrop-blur-md shadow-lg border border-white/30 text-xs !font-normal w-fit'>
+                        <span className="text-white text-xs">{getCheckupLabel(lastSession.checkup_type)}</span>
+                    </div>
+                    <div className='px-3 py-1 rounded-lg bg-black/20 backdrop-blur-sm text-xs text-white w-fit'>
+                        {formatDate(lastSession.created_at)}
+                    </div>
                 </div>
             </div>
         </section>
-    )
+    );
 }
