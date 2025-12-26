@@ -7,10 +7,12 @@ import MoreMenu from './quick-actions/more-menu';
 import ContactModal from './quick-actions/contact-modal';
 import ReportModal from './quick-actions/report-modal';
 import vetContacts from '@/constants/vet-contacts-data';
+import { useScanResultContext } from '@/contexts/scan-result-context';
 
 export default function QuickActionBar() {
     const [openContacts, setOpenContacts] = useState(false);
     const [openReport, setOpenReport] = useState(false);
+    const { session } = useScanResultContext();
 
     return (
         <>
@@ -37,6 +39,7 @@ export default function QuickActionBar() {
             <ReportModal
                 open={openReport}
                 onOpenChange={setOpenReport}
+                session={session}
             />
         </>
     );

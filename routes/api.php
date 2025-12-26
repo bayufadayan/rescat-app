@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
+use App\Http\Controllers\Api\CheckupReportController;
 
 Route::post('/storage/upload', function (Request $req) {
     $token = env('UPLOAD_TOKEN', null);
@@ -18,3 +19,5 @@ Route::post('/storage/upload', function (Request $req) {
     $url = Storage::url($path);
     return response()->json(['ok' => true, 'url' => $url], 200);
 });
+
+Route::post('/checkup-reports', [CheckupReportController::class, 'store'])->name('api.checkup-reports.store');

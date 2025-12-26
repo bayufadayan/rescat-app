@@ -66,6 +66,11 @@ class ScanSession extends Model
         return $this->hasOne(ScanResult::class, 'scan_id', 'id');
     }
 
+    public function checkupReports()
+    {
+        return $this->hasMany(CheckupReport::class, 'scan_session_id', 'id');
+    }
+
     // ================= SOFT DELETE CASCADE =================
     protected static function booted()
     {
