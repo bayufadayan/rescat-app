@@ -66,7 +66,7 @@ class AuthenticatedSessionController extends Controller
             return Inertia::location(route('filament.admin.pages.dashboard'));
         }
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        return redirect()->intended('/');  // Redirect to intended URL or home
     }
 
     /**

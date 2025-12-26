@@ -67,6 +67,7 @@ class RegisteredUserController extends Controller
                 ->update(['user_id' => $user->id]);
         }
 
-        return redirect()->route('verification.notice');
+        // Skip email verification and redirect to intended URL or home
+        return redirect()->intended('/');
     }
 }
