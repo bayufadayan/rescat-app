@@ -4,6 +4,7 @@ use App\Http\Controllers\AppStartController;
 use App\Http\Controllers\ScanController;
 use App\Http\Controllers\ScanReportController;
 use App\Http\Controllers\PetcareController;
+use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -43,10 +44,10 @@ Route::prefix('petcares')->group(function () {
     Route::get('/{id}', [PetcareController::class, 'show'])->name('petcares.show');
 });
 
+// Articles
 Route::prefix('articles')->group(function () {
-    Route::get('/', function () {
-        return Inertia::render('splash');
-    })->name('articles');
+    Route::get('/', [ArticleController::class, 'index'])->name('articles');
+    Route::get('/{slug}', [ArticleController::class, 'show'])->name('articles.show');
 });
 
 Route::middleware('guest')->group(function () {
