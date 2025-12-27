@@ -1,14 +1,30 @@
 "use client";
 import React from 'react';
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import navigationData from '@/constants/navigation-data';
 
+type PageProps = {
+    auth?: {
+        user: any;
+    };
+};
+
 export default function Navigation() {
+    const { auth } = usePage<PageProps>().props;
+
+    // Filter menu: Dashboard hanya untuk user yang sudah login
+    const filteredNav = navigationData.filter((item) => {
+        if (item.href === '/dashboard') {
+            return !!auth?.user; // Show only if user is authenticated
+        }
+        return true; // Show other menu items for everyone
+    });
+
     return (
         <nav className='flex flex-col w-full'>
             <ul className='flex flex-col w-full gap-0'>
                 {
-                    navigationData.map((item, index) => (
+                    filteredNav.map((item, index) => (
                         <Link href={item.href} key={index} className='p-2 hover:bg-blue-100 transition-all duration-300 ease-in-out'>
                             <li className='flex items-center gap-4 text-[#2C2C2C] px-4'>
                                 <figure className='w-4 h-4'>
