@@ -13,13 +13,19 @@ import {
 import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Cat, Folder, LayoutGrid } from 'lucide-react';
+import { BookOpen, Cat, Heart, Home, LayoutGrid, Newspaper, Scan } from 'lucide-react';
 import AppLogo from './app-logo';
+import { useRoute } from 'ziggy-js';
 
 const mainNavItems: NavItem[] = [
     {
+        title: 'Home',
+        href: '/',
+        icon: Home,
+    },
+    {
         title: 'Dashboard',
-        href: dashboard(),
+        href: '/dashboard',
         icon: LayoutGrid,
     },
     {
@@ -27,29 +33,41 @@ const mainNavItems: NavItem[] = [
         href: '/cats',
         icon: Cat,
     },
+    {
+        title: 'Scan History',
+        href: '/history',
+        icon: Scan,
+    },
+    {
+        title: 'Pet Care',
+        href: '/petcares',
+        icon: Heart,
+    },
+    {
+        title: 'Articles',
+        href: '/articles',
+        icon: Newspaper,
+    },
 ];
 
 const footerNavItems: NavItem[] = [
     {
-        title: 'Repository',
-        href: 'https://github.com/laravel/react-starter-kit',
-        icon: Folder,
-    },
-    {
         title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#react',
+        href: 'https://github.com/yourusername/rescat-app',
         icon: BookOpen,
     },
 ];
 
 export function AppSidebar() {
+    const route = useRoute();
+    
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <Link href={dashboard()} prefetch>
+                            <Link href={route('home')} prefetch>
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>

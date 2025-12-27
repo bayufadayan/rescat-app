@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AppStartController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ScanController;
 use App\Http\Controllers\ScanReportController;
 use App\Http\Controllers\PetcareController;
@@ -61,9 +62,7 @@ Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])
     ->name('google.callback');
 
 Route::middleware(['auth', 'verified', 'user'])->group(function () {
-    Route::get('dashboard', function () {
-        return Inertia::render('dashboard');
-    })->name('dashboard');
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Cat Management Routes
     Route::prefix('cats')->group(function () {
