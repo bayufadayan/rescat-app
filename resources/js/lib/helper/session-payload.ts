@@ -14,7 +14,7 @@ function cleanStr(v: string | null, fallback: string) {
 export function buildSessionPayload(
     address: any,
     coords: { lat: number; lon: number } | null,
-    opts?: { informer?: string; notes?: string },
+    opts?: { informer?: string; notes?: string; cat_id?: string | null },
 ) {
     const scanOption = cleanStr(localStorage.getItem('scanOption'), 'face');
     const scanType = cleanStr(localStorage.getItem('scanType'), 'quick');
@@ -39,6 +39,7 @@ export function buildSessionPayload(
 
         informer: opts?.informer ?? null,
         notes: opts?.notes ?? null,
+        cat_id: opts?.cat_id ?? null,
 
         images: {
             img_original_id: original?.id ?? null,

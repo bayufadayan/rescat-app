@@ -15,6 +15,7 @@ import type { CatApiResponse } from "@/types/scan";
 
 /*=============== THIRD PARTY ===============*/
 import { useRoute } from "ziggy-js";
+import { usePage } from "@inertiajs/react";
 
 /*=============== GLOBAL STATE ===============*/
 type Phase = "idle" | "uploading" | "analyzing" | "success" | "noncat" | "fail";
@@ -32,6 +33,8 @@ type StoredOriginal = {
 export default function ScanDetails() {
     const route = useRoute();
     const isMobile = useIsMobile();
+    const { props } = usePage<any>();
+    const [cats, setCats] = useState<Array<{ id: string; name: string }>>([]);
 
     const toRelativeUrl = useCallback((url: string) => {
         if (!url) return url;
@@ -88,6 +91,31 @@ export default function ScanDetails() {
     useEffect(() => {
         askLocation();
     }, []);
+
+    /** Fetch user's cats if authenticated */
+    useEffect(() => {
+        if (props?.auth?.user) {
+            fetch('/api/cats', {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+            })
+                .then((res) => res.json())
+                .then((data) => {
+                    if (data.ok && data.data && Array.isArray(data.data)) {
+                        setCats(
+                            data.data.map((cat: any) => ({
+                                id: cat.id,
+                                name: cat.name,
+                            }))
+                        );
+                    }
+                })
+                .catch((err) => console.error('Failed to fetch cats:', err));
+        }
+    }, [props?.auth?.user]);
 
     /** Guard: pastikan ada original (localStorage) atau sudah ada result (sessionStorage) */
     useEffect(() => {
@@ -266,6 +294,8 @@ export default function ScanDetails() {
                                 refreshLocation={askLocation}
                                 clearLocation={clearLocation}
                                 phase={phase}
+                                auth={props?.auth}
+                                cats={cats}
                             />
                         </div>
                     )}
@@ -280,6 +310,8 @@ export default function ScanDetails() {
                                 refreshLocation={askLocation}
                                 clearLocation={clearLocation}
                                 phase={phase}
+                                auth={props?.auth}
+                                cats={cats}
                             />
                         </div>
                     )}

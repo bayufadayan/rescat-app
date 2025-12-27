@@ -205,4 +205,20 @@ class CatController extends Controller
         return redirect()->route('cats.index')
             ->with('success', 'Cat removed successfully!');
     }
+
+    /**
+     * Get cats for dropdown (JSON API)
+     */
+    public function getCatsForDropdown()
+    {
+        $cats = Cat::where('user_id', Auth::id())
+            ->select('id', 'name')
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'ok' => true,
+            'data' => $cats,
+        ]);
+    }
 }

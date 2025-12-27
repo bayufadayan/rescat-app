@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\Api\CheckupReportController;
 use App\Http\Controllers\Api\PetcareController;
 use App\Http\Controllers\ScanController;
+use App\Http\Controllers\CatController;
 
 Route::post('/storage/upload', function (Request $req) {
     $token = env('UPLOAD_TOKEN', null);
@@ -32,4 +33,5 @@ Route::get('/scan/session/{id}', [ScanController::class, 'getSessionById'])->nam
 Route::middleware(['web', 'auth'])->group(function () {
     Route::post('/scan/transfer-sessions', [ScanController::class, 'transferGuestSessions'])->name('api.scan.transfer');
     Route::get('/scan/sessions', [ScanController::class, 'getUserSessions'])->name('api.scan.sessions');
+    Route::get('/cats', [CatController::class, 'getCatsForDropdown'])->name('api.cats');
 });

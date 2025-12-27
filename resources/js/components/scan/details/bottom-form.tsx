@@ -9,6 +9,11 @@ import InfoNotice from "./info-notice";
 import { buildSessionPayload } from "@/lib/helper/session-payload";
 import { submitScanSession } from "@/lib/helper/submit-session";
 
+type CatOption = {
+    id: string;
+    name: string;
+};
+
 type Props = {
     open: boolean;
     setOpen: (v: boolean) => void;
@@ -19,6 +24,13 @@ type Props = {
     refreshLocation: () => void;
     clearLocation: () => void;
     phase?: string;
+    auth?: {
+        user: {
+            id: string;
+            name: string;
+        } | null;
+    };
+    cats?: CatOption[];
 };
 
 const BottomForm: React.FC<Props> = ({
@@ -31,10 +43,13 @@ const BottomForm: React.FC<Props> = ({
     refreshLocation,
     clearLocation,
     phase,
+    auth,
+    cats = [],
 }) => {
     const [anonymous, setAnonymous] = useState(true);
     const [name, setName] = useState("");
     const [notes, setNotes] = useState("");
+    const [catId, setCatId] = useState<string>("");
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [forceCheck, setForceCheck] = useState(false);
@@ -141,6 +156,30 @@ const BottomForm: React.FC<Props> = ({
                                 onClear={clearLocation}
                             />
 
+                            {auth?.user && (
+                                <div className="space-y-2">
+                                    <label className="block text-sm font-medium text-slate-700">Pilih Kucing (Opsional)</label>
+                                    <select
+                                        className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none ring-sky-100 focus:ring-4 transition-all bg-white text-slate-900"
+                                        value={catId}
+                                        onChange={(e) => setCatId(e.target.value)}
+                                        disabled={cats.length === 0}
+                                    >
+                                        <option value="">-- {cats.length === 0 ? 'Belum ada kucing' : 'Pilih Kucing'} --</option>
+                                        {cats.map((cat) => (
+                                            <option key={cat.id} value={cat.id}>
+                                                {cat.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {cats.length === 0 && (
+                                        <p className="text-xs text-slate-500 mt-1">
+                                            Tambahkan kucing terlebih dahulu di menu Kucing Saya
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+
                             <div className="space-y-2">
                                 <label className="block text-sm font-medium text-slate-700">Your name</label>
                                 <input
@@ -229,6 +268,7 @@ const BottomForm: React.FC<Props> = ({
                                     const payload = buildSessionPayload(address, coords, {
                                         informer: anonymous ? "Anonim" : name || "Anonim",
                                         notes,
+                                        cat_id: catId || null,
                                     });
                                     const { data } = await submitScanSession(buildRoute("scan.sessions.store"), payload);
 
