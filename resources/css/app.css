@@ -252,4 +252,15 @@
     #nprogress .peg {
         box-shadow: 0 0 10px #0091F3, 0 0 5px #0091F3 !important;
     }
+
+    /* Password input dots styling - only for actual value, not placeholder */
+    input[type="password"]:not(:placeholder-shown) {
+        font-family: Verdana, sans-serif;
+        letter-spacing: 0.125em;
+    }
+    
+    input[type="password"]::-ms-reveal,
+    input[type="password"]::-ms-clear {
+        display: none;
+    }
 }
