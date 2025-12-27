@@ -88,7 +88,9 @@ export default function MediaViewer({ detail, areaLabel }: Props) {
                             <img 
                                 src={roi} 
                                 alt={`ROI ${areaLabel}`} 
-                                className='w-full h-full object-cover' 
+                                className='w-full h-full object-cover'
+                                onContextMenu={(e) => e.preventDefault()}
+                                draggable={false}
                             />
                             
                             {/* Info Text Overlay */}
@@ -111,6 +113,8 @@ export default function MediaViewer({ detail, areaLabel }: Props) {
                                         src={gradcam} 
                                         alt={`Grad-CAM ${areaLabel}`} 
                                         className='w-full h-full object-cover'
+                                        onContextMenu={(e) => e.preventDefault()}
+                                        draggable={false}
                                     />
                                     <div className='absolute top-3 left-3 px-3 py-1.5 bg-sky-500/90 backdrop-blur-sm rounded-full'>
                                         <span className='text-white text-xs font-semibold'>Area Penilaian AI</span>
@@ -141,7 +145,9 @@ export default function MediaViewer({ detail, areaLabel }: Props) {
                             <img 
                                 src={roi} 
                                 alt={`ROI ${areaLabel}`} 
-                                className='w-full h-full object-cover' 
+                                className='w-full h-full object-cover'
+                                onContextMenu={(e) => e.preventDefault()}
+                                draggable={false}
                             />
                             
                             {/* Info Text Overlay */}
@@ -164,6 +170,8 @@ export default function MediaViewer({ detail, areaLabel }: Props) {
                                         src={gradcam} 
                                         alt={`Grad-CAM ${areaLabel}`} 
                                         className='w-full h-full object-cover'
+                                        onContextMenu={(e) => e.preventDefault()}
+                                        draggable={false}
                                     />
                                     <div className='absolute top-3 left-3 px-3 py-1.5 bg-sky-500/90 backdrop-blur-sm rounded-full'>
                                         <span className='text-white text-xs font-semibold'>Area Penilaian AI</span>
@@ -184,7 +192,13 @@ export default function MediaViewer({ detail, areaLabel }: Props) {
                             className='w-full rounded-xl overflow-hidden border border-slate-200 cursor-pointer hover:border-sky-400 transition-all'
                             onClick={() => handleClick(gradcam, `Grad-CAM ${areaLabel}`, 1)}
                         >
-                            <img src={gradcam} alt={`Grad-CAM ${areaLabel}`} className='w-full h-full object-cover aspect-square' />
+                            <img 
+                                src={gradcam} 
+                                alt={`Grad-CAM ${areaLabel}`} 
+                                className='w-full h-full object-cover aspect-square'
+                                onContextMenu={(e) => e.preventDefault()}
+                                draggable={false}
+                            />
                             <figcaption className='px-3 py-2 text-xs text-slate-600 bg-slate-50 border-t border-slate-200'>
                                 Grad-CAM
                             </figcaption>

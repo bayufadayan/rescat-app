@@ -36,6 +36,8 @@ export default function AnalysisGrid({ detail, label, active, onClick }: Props) 
                     src={detail?.img_roi_area_url ?? FALLBACK}
                     alt={label}
                     className='w-full h-full object-cover'
+                    onContextMenu={(e) => e.preventDefault()}
+                    draggable={false}
                 />
                 {confidence && (
                     <span className='absolute top-2 left-2 text-[10px] font-semibold uppercase tracking-wide bg-white/90 px-2 py-1 rounded-full text-slate-700'>

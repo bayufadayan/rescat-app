@@ -102,6 +102,8 @@ export default function AnalysisTile() {
                                 src={img.src} 
                                 alt={img.alt} 
                                 className='w-full h-full object-cover group-hover:scale-105 transition-transform duration-300'
+                                onContextMenu={(e) => e.preventDefault()}
+                                draggable={false}
                             />
                             <div className='absolute inset-0 bg-gradient-to-t from-black/70 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity flex items-end'>
                                 <span className='text-white text-xs font-medium px-2 py-2 w-full'>

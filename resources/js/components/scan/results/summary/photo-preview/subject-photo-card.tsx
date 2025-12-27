@@ -12,7 +12,13 @@ export default function SubjectPhotoCard({ src, maskSrc, alt = 'Hasil landmark' 
 
     return (
         <figure className='w-full h-full shrink-0 grow-0 flex relative'>
-            <img src={src} alt={alt} className='w-full h-full object-center object-cover' />
+            <img 
+                src={src} 
+                alt={alt} 
+                className='w-full h-full object-center object-cover' 
+                onContextMenu={(e) => e.preventDefault()}
+                draggable={false}
+            />
             
             {/* Scan animation overlay */}
             {maskImage && (

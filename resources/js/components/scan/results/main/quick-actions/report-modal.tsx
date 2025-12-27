@@ -136,6 +136,8 @@ export default function ReportModal({ open, onOpenChange, session }: Props) {
                                         src={photoUrl}
                                         alt="Hasil pemeriksaan"
                                         className="h-full w-full object-cover"
+                                        onContextMenu={(e) => e.preventDefault()}
+                                        draggable={false}
                                     />
                                 </div>
                                 <div className="min-w-0 flex-1">

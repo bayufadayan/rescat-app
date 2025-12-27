@@ -33,7 +33,13 @@ export default function ThumbTabItem({ label, image, status, active = false, onC
         >
             <div className="relative w-full h-full">
                 {image ? (
-                    <img src={image} alt={label} className={`w-full h-full object-cover transition-all duration-300 ${active ? 'brightness-110' : ''}`} />
+                    <img 
+                        src={image} 
+                        alt={label} 
+                        className={`w-full h-full object-cover transition-all duration-300 ${active ? 'brightness-110' : ''}`}
+                        onContextMenu={(e) => e.preventDefault()}
+                        draggable={false}
+                    />
                 ) : (
                     <div className="w-full h-full bg-slate-200 grid place-items-center text-xs text-slate-500">
                         Tidak ada foto

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 
 type Props = {
     src: string;
@@ -132,6 +132,25 @@ export default function ImageZoomModal({ src, alt, isOpen, onClose, onNext, onPr
         setIsDragging(false);
     };
 
+    const handleDownload = async () => {
+        try {
+            const response = await fetch(src);
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = alt.replace(/\s+/g, '_') + '.jpg';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Download failed:', error);
+            // Fallback: open in new tab
+            window.open(src, '_blank');
+        }
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -140,16 +159,33 @@ export default function ImageZoomModal({ src, alt, isOpen, onClose, onNext, onPr
             onClick={onClose}
         >
             <button
-                onClick={onClose}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onClose();
+                }}
                 className="absolute top-4 right-4 z-10 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all"
             >
                 <X className="w-6 h-6" />
             </button>
 
+            <button
+                onClick={(e) => {
+                    e.stopPropagation();
+                    handleDownload();
+                }}
+                className="absolute top-4 right-20 z-10 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all"
+                title="Download gambar"
+            >
+                <Download className="w-6 h-6" />
+            </button>
+
             {/* Navigation Arrows */}
             {showNavigation && onPrev && (
                 <button
-                    onClick={handlePrev}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handlePrev();
+                    }}
                     className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-3 bg-white/10 hover:bg-white/20 hover:scale-110 rounded-full text-white transition-all backdrop-blur-sm"
                 >
                     <ChevronLeft className="w-8 h-8" />
@@ -157,7 +193,10 @@ export default function ImageZoomModal({ src, alt, isOpen, onClose, onNext, onPr
             )}
             {showNavigation && onNext && (
                 <button
-                    onClick={handleNext}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleNext();
+                    }}
                     className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-3 bg-white/10 hover:bg-white/20 hover:scale-110 rounded-full text-white transition-all backdrop-blur-sm"
                 >
                     <ChevronRight className="w-8 h-8" />
@@ -167,7 +206,6 @@ export default function ImageZoomModal({ src, alt, isOpen, onClose, onNext, onPr
             <div
                 ref={containerRef}
                 className="relative w-full h-full flex items-center justify-center overflow-hidden touch-none"
-                onClick={(e) => e.stopPropagation()}
                 onWheel={handleWheel}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
@@ -190,6 +228,8 @@ export default function ImageZoomModal({ src, alt, isOpen, onClose, onNext, onPr
                         cursor: scale > 1 ? (isDragging ? 'grabbing' : 'grab') : 'zoom-in',
                     }}
                     draggable={false}
+                    onContextMenu={(e) => e.preventDefault()}
+                    onClick={(e) => e.stopPropagation()}
                 />
             </div>
 

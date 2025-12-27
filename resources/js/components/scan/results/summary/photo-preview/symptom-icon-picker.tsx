@@ -22,7 +22,12 @@ export default function SymptomIconPicker() {
                         status={status}
                         label={`${meta.label} — ${status === 'abnormal' ? 'perlu perhatian' : 'normal'}`}
                     >
-                        <img src={meta.icon} alt={meta.label} />
+                        <img 
+                            src={meta.icon} 
+                            alt={meta.label} 
+                            onContextMenu={(e) => e.preventDefault()}
+                            draggable={false}
+                        />
                     </SymptomIcon>
                 );
             })}
