@@ -23,20 +23,28 @@ class DashboardController extends Controller
         
         // Get recent scans (last 5)
         $recentScans = ScanSession::where('user_id', $user->id)
-            ->with(['results', 'cat'])
+            ->with(['result.details', 'cat'])
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get()
             ->map(function ($session) {
+                $resultsCount = 0;
+                $hasAbnormal = false;
+                
+                if ($session->result && $session->result->details) {
+                    $resultsCount = $session->result->details->count();
+                    $hasAbnormal = $session->result->details->filter(function ($detail) {
+                        $label = strtolower($detail->label ?? '');
+                        return !in_array($label, ['healthy', 'sehat', 'normal']);
+                    })->isNotEmpty();
+                }
+                
                 return [
                     'id' => $session->id,
                     'cat_name' => $session->cat?->name ?? 'Unknown Cat',
                     'created_at' => $session->created_at->format('d M Y, H:i'),
-                    'results_count' => $session->results->count(),
-                    'has_abnormal' => $session->results->filter(function ($result) {
-                        $label = strtolower($result->label ?? '');
-                        return !in_array($label, ['healthy', 'sehat', 'normal']);
-                    })->isNotEmpty(),
+                    'results_count' => $resultsCount,
+                    'has_abnormal' => $hasAbnormal,
                 ];
             });
 
@@ -58,7 +66,7 @@ class DashboardController extends Controller
         $healthScore = 100;
         if ($scansCount > 0) {
             $healthyScans = ScanSession::where('user_id', $user->id)
-                ->whereHas('results', function ($query) {
+                ->whereHas('result.details', function ($query) {
                     $query->whereIn('label', ['healthy', 'sehat', 'normal']);
                 })
                 ->count();
