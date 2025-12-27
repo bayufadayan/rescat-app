@@ -59,7 +59,7 @@ export default function LastCheck() {
         return () => {
             cancelled = true;
         };
-    }, [auth?.user?.id]);
+    }, [auth?.user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleViewResult = () => {
         if (lastSession) {

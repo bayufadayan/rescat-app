@@ -56,7 +56,7 @@ export default function HistoryPreview() {
         return () => {
             cancelled = true;
         };
-    }, [auth?.user?.id]);
+    }, [auth?.user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
