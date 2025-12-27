@@ -12,6 +12,7 @@ type User = {
     name: string;
     email: string;
     avatar: string | null;
+    cats_count: number;
 };
 
 type PageProps = {
@@ -33,7 +34,7 @@ export default function ProfileCard() {
         : null;
 
     const displayName = user?.name || 'Guest';
-    const catCount: number = 0;
+    const catCount: number = user?.cats_count ?? 0;
 
     return (
         <div

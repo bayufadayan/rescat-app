@@ -18,12 +18,9 @@
                 font-family: 'Urbanist', ui-sans-serif, system-ui, -apple-system, sans-serif;
                 background: linear-gradient(135deg, #0091f3 0%, #21a6ff 100%);
                 min-height: 100vh;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                padding: 1rem;
+                padding: 2rem 1rem;
                 position: relative;
-                overflow: hidden;
+                overflow-x: hidden;
             }
 
             /* Animated background circles */
@@ -78,6 +75,7 @@
                 z-index: 10;
                 max-width: 600px;
                 width: 100%;
+                margin: 0 auto;
                 text-align: center;
                 background: white;
                 border-radius: 24px;

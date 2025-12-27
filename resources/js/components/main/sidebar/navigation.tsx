@@ -13,9 +13,9 @@ type PageProps = {
 export default function Navigation() {
     const { auth } = usePage<PageProps>().props;
 
-    // Filter menu: Dashboard hanya untuk user yang sudah login
+    // Filter menu: Dashboard dan My Cats hanya untuk user yang sudah login
     const filteredNav = navigationData.filter((item) => {
-        if (item.href === '/dashboard') {
+        if (item.href === '/dashboard' || (item as any).requiresAuth) {
             return !!auth?.user; // Show only if user is authenticated
         }
         return true; // Show other menu items for everyone

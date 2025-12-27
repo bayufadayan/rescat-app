@@ -6,6 +6,7 @@ use App\Http\Controllers\ScanReportController;
 use App\Http\Controllers\PetcareController;
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\Auth\GoogleAuthController;
+use App\Http\Controllers\CatController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -62,6 +63,17 @@ Route::middleware(['auth', 'verified', 'user'])->group(function () {
     Route::get('dashboard', function () {
         return Inertia::render('dashboard');
     })->name('dashboard');
+
+    // Cat Management Routes
+    Route::prefix('cats')->group(function () {
+        Route::get('/', [CatController::class, 'index'])->name('cats.index');
+        Route::get('/create', [CatController::class, 'create'])->name('cats.create');
+        Route::post('/', [CatController::class, 'store'])->name('cats.store');
+        Route::get('/{cat}', [CatController::class, 'show'])->name('cats.show');
+        Route::get('/{cat}/edit', [CatController::class, 'edit'])->name('cats.edit');
+        Route::put('/{cat}', [CatController::class, 'update'])->name('cats.update');
+        Route::delete('/{cat}', [CatController::class, 'destroy'])->name('cats.destroy');
+    });
 });
 
 require __DIR__ . '/settings.php';

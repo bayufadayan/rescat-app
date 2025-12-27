@@ -25,6 +25,14 @@ class Cat extends Model
         'gender' => 'string',
     ];
 
+    /**
+     * Get the route key for the model.
+     */
+    public function getRouteKeyName(): string
+    {
+        return 'id';
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);
