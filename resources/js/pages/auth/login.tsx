@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import AuthLayout from '@/layouts/auth-layout';
 import { register } from '@/routes';
 import { request } from '@/routes/password';
-import { Form } from "@inertiajs/react";
+import { Form, router } from "@inertiajs/react";
 import { MdAccountCircle } from "react-icons/md";
 import { GiPadlock } from "react-icons/gi";
 import { IoCloseCircle } from "react-icons/io5";
@@ -27,6 +27,15 @@ interface LoginProps {
 
 export default function Login({ status, canResetPassword }: LoginProps) {
     const route = useRoute();
+
+    // Check if user has ever logged in before
+    useEffect(() => {
+        const everLogin = localStorage.getItem('everlogin');
+        if (!everLogin) {
+            // First time user, redirect to onboarding
+            router.visit(route('onboarding'));
+        }
+    }, [route]);
 
     useEffect(() => {
         if (status) {
@@ -51,6 +60,8 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                 ...AuthenticatedSessionController.store.form()}
                 resetOnSuccess={['password']}
                 onSuccess={() => {
+                    // Set everlogin to true after successful login
+                    localStorage.setItem('everlogin', 'true');
                     // Clear scan sessions after successful login
                     scanSessionStorage.clearSessions();
                 }}

@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
-import { router } from '@inertiajs/react';
+import React from 'react';
+import { router, usePage } from '@inertiajs/react';
 import { useRoute } from 'ziggy-js';
 
 type Tab = 'home' | 'history';
 
 export default function Navigation() {
     const route = useRoute();
-    const [activeTab, setActiveTab] = useState<Tab>('home');
+    const { component } = usePage();
+    
+    // Detect active tab from current page component
+    const activeTab: Tab = component.startsWith('history/') ? 'history' : 'home';
 
     return (
         <div
@@ -18,7 +21,6 @@ export default function Navigation() {
         >
             <button
                 onClick={() => {
-                    setActiveTab('home');
                     router.visit(route('home'));
                 }}
                 className={`flex-1 p-1 rounded-full flex items-center justify-center py-3 transition cursor-pointer
@@ -39,8 +41,7 @@ export default function Navigation() {
 
             <button
                 onClick={() => {
-                    setActiveTab('history');
-                    router.visit(route('onboarding'));
+                    router.visit(route('history'));
                 }}
                 className={`flex-1 p-1 rounded-full flex items-center justify-center py-3 transition cursor-pointer 
                     ${activeTab === 'history' ? 'bg-[#0091F3]' : 'bg-[#E5E8EC]'}`}

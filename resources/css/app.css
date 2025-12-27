@@ -226,4 +226,30 @@
     .animate-slide-out-right {
         animation: slide-out-right 300ms ease-out;
     }
+
+    /* Inertia progress bar gradient animation */
+    @keyframes progress-gradient {
+        0% {
+            background: linear-gradient(to right, #ffffff, #0091F3);
+        }
+        33% {
+            background: linear-gradient(to right, #0091F3, #8B5CF6);
+        }
+        66% {
+            background: linear-gradient(to right, #8B5CF6, #ffffff);
+        }
+        100% {
+            background: linear-gradient(to right, #ffffff, #0091F3);
+        }
+    }
+
+    #nprogress .bar {
+        background: linear-gradient(to right, #ffffff, #0091F3) !important;
+        animation: progress-gradient 3s ease-in-out infinite !important;
+        height: 3px !important;
+    }
+
+    #nprogress .peg {
+        box-shadow: 0 0 10px #0091F3, 0 0 5px #0091F3 !important;
+    }
 }

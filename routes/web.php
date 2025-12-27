@@ -12,7 +12,8 @@ use Inertia\Inertia;
 
 Route::get('/', [AppStartController::class, 'root'])->name('home');
 Route::post('/set-splash', [AppStartController::class, 'setSplashSeen']);
-Route::get('/onboarding', [AppStartController::class, 'onboarding'])->name('onboarding');
+Route::get('/onboarding', [AppStartController::class, 'onboarding'])->middleware('guest')->name('onboarding');
+Route::get('/history', [AppStartController::class, 'history'])->name('history');
 Route::get('/thankyou', function () {
     return Inertia::render('thankyou/thankyou');
 })->name('thankyou');

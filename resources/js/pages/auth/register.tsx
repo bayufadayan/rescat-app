@@ -1,6 +1,6 @@
 import RegisteredUserController from '@/actions/App/Http/Controllers/Auth/RegisteredUserController';
 import { login } from '@/routes';
-import { Form } from '@inertiajs/react';
+import { Form, router } from '@inertiajs/react';
 import InputError from '@/components/input-error';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
@@ -21,15 +21,22 @@ import { scanSessionStorage } from '@/lib/helper/scan-session-storage';
 export default function Signup() {
     const route = useRoute();
 
+    // Check if user has ever logged in before
+    useEffect(() => {
+        const everLogin = localStorage.getItem('everlogin');
+        if (!everLogin) {
+            // First time user, redirect to onboarding
+            router.visit(route('onboarding'));
+        }
+    }, [route]);
+
     // Clear guest seed setelah berhasil register
     useEffect(() => {
-        return () => {
-            // Cleanup ketika unmount setelah register sukses
-            const timer = setTimeout(() => {
-                clearGuestAvatarSeed();
-            }, 1000);
-            return () => clearTimeout(timer);
-        };
+        // Cleanup ketika unmount setelah register sukses
+        const timer = setTimeout(() => {
+            clearGuestAvatarSeed();
+        }, 1000);
+        return () => clearTimeout(timer);
     }, []);
 
     return (
@@ -42,13 +49,13 @@ export default function Signup() {
                 resetOnSuccess={['password', 'password_confirmation']}
                 disableWhileProcessing
                 onSuccess={() => {
+                    // Set everlogin to true after successful registration
+                    localStorage.setItem('everlogin', 'true');
                     // Clear scan sessions after successful register
                     scanSessionStorage.clearSessions();
                 }}
                 onBefore={() => {
-                    // Inject avatar seed sebelum submit
-                    const seed = getGuestAvatarSeed();
-                    // Set via transform di form data
+                    // Inject avatar seed sebelum submit via transform
                     return true;
                 }}
                 transform={(data) => ({

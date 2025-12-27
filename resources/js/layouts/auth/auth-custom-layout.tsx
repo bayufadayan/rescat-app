@@ -1,4 +1,6 @@
 import React from "react";
+import { router } from "@inertiajs/react";
+import { useRoute } from "ziggy-js";
 
 interface AuthLayoutProps {
     children?: React.ReactNode;
@@ -11,13 +13,19 @@ export default function AuthCustomLayout({
     title,
     description,
 }: AuthLayoutProps ) {
+    const route = useRoute();
+
     return (
         <main className='min-h-dvh h-dvh flex flex-col items-center bg-[linear-gradient(to_bottom,_#0091F3,_#21A6FF)] relative px-4'>
             <div className="absolute w-full h-full bg-[url('/images/background/pink-purple.png')] bg-cover bg-center bg-no-repeat mix-blend-soft-light opacity-60" />
 
-            <figure className='h-12 mt-10 mb-6'>
+            <button 
+                onClick={() => router.visit(route('home'))}
+                className='relative z-20 h-10 mt-10 mb-6 cursor-pointer hover:scale-105 transition-transform active:scale-95'
+                type="button"
+            >
                 <img src="/images/icon/logo-rescat.svg" alt="ResCat" className="h-full w-auto object-contain" />
-            </figure>
+            </button>
 
             <div
                 className="

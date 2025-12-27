@@ -26,10 +26,10 @@ export default function HistoryPreview() {
                 if (auth?.user) {
                     const response = await axios.get('/api/scan/sessions');
                     if (!cancelled) {
-                        setSessions(response.data.ok ? response.data.sessions.slice(0, 4) : []);
+                        setSessions(response.data.ok ? response.data.sessions.slice(0, 5) : []);
                     }
                 } else {
-                    const sessionIds = scanSessionStorage.getSessionIds().slice(0, 4);
+                    const sessionIds = scanSessionStorage.getSessionIds().slice(0, 5);
                     if (sessionIds.length === 0) {
                         if (!cancelled) setSessions([]);
                         return;
@@ -114,9 +114,9 @@ export default function HistoryPreview() {
         <section className="flex flex-col w-full gap-2 px-4">
             <div className='flex justify-between px-1'>
                 <h3 className="font-semibold text-lg">History</h3>
-                {sessions.length > 4 && (
+                {sessions.length >= 5 && (
                     <button 
-                        onClick={() => router.visit('/dashboard')}
+                        onClick={() => router.visit('/history')}
                         className="flex gap-0.5 text-black/60 text-sm self-center items-center hover:text-[#0D99FF] transition-colors"
                     >
                         See all

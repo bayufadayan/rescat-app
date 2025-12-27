@@ -27,4 +27,9 @@ class AppStartController extends Controller
     {
         return Inertia('onboarding/onboarding-page');
     }
+
+    public function history()
+    {
+        return Inertia('history/history');
+    }
 }
