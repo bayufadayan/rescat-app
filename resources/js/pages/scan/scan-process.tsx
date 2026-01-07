@@ -238,7 +238,7 @@ export default function ScanProcess({ session }: ScanProcessProps) {
                         <Home />
                     </button>
                     <h4 className="font-bold text-xl text-center flex-1">
-                        Scanning...
+                        Memindai...
                     </h4>
                     <button className="invisible">
                         <Home />

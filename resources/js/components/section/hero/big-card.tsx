@@ -6,7 +6,7 @@ export default function BigCard() {
     const route = useRoute();
     const data = {
         icon: "/images/icon/camera.svg",
-        title: "Scan Foto Kucing",
+        title: "Pindai Foto Kucing",
         description: "Periksa foto kucing anda sekarang dengan teknologi AI yang terpercaya.",
         href: route('scan'),
     }
@@ -71,10 +71,10 @@ export default function BigCard() {
                 {loading ? (
                     <span className="relative flex items-center gap-2 text-sm">
                         <span className="h-4 w-4 border-2 border-white/70 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
-                        Loading...
+                        Memuat...
                     </span>
                 ) : (
-                    <span className="relative text-lg">Try Now</span>
+                    <span className="relative text-lg">Mulai Sekarang</span>
                 )}
             </button>
         </div>

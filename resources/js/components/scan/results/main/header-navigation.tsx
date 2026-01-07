@@ -17,9 +17,9 @@ export default function HeaderNavigation({ tab, onTabChange }: Props) {
     const iconClass = 'w-6 h-6 text-black';
 
     const titleMap = {
-        summary: 'Summary',
-        details: 'Details',
-        history: 'History',
+        summary: 'Ringkasan',
+        details: 'Detail',
+        history: 'Riwayat',
     };
 
     return (

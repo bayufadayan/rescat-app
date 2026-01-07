@@ -107,7 +107,7 @@ export default function LastCheck() {
         return (
             <section className="flex flex-col w-full gap-2 px-4">
                 <div className='flex justify-between px-1'>
-                    <h3 className="font-semibold text-lg">Last Check</h3>
+                    <h3 className="font-semibold text-lg">Pemeriksaan Terakhir</h3>
                 </div>
                 <div className="flex items-center justify-center w-full h-86 rounded-2xl shadow-md bg-gray-100">
                     <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#0D99FF] border-t-transparent"></div>
@@ -120,17 +120,17 @@ export default function LastCheck() {
         return (
             <section className="flex flex-col w-full gap-2 px-4">
                 <div className='flex justify-between px-1'>
-                    <h3 className="font-semibold text-lg">Last Check</h3>
+                    <h3 className="font-semibold text-lg">Pemeriksaan Terakhir</h3>
                 </div>
                 <div className="flex flex-col items-center justify-center w-full h-86 rounded-2xl shadow-md bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-dashed border-blue-200">
                     <ScanLine className="w-12 h-12 text-blue-300 mb-3" />
-                    <p className="text-gray-600 font-medium mb-1">Belum ada scan</p>
-                    <p className="text-sm text-gray-500 mb-4">Mulai scan pertama Anda sekarang</p>
+                    <p className="text-gray-600 font-medium mb-1">Belum ada pemeriksaan</p>
+                    <p className="text-sm text-gray-500 mb-4">Mulai pemeriksaan pertama Anda sekarang</p>
                     <button
                         onClick={() => router.visit('/scan')}
                         className="px-6 py-2 bg-gradient-to-r from-[#0D99FF] to-[#0066cc] text-white rounded-xl font-medium hover:shadow-lg transition-all active:scale-[0.98]"
                     >
-                        Mulai Scan
+                        Mulai Periksa
                     </button>
                 </div>
             </section>
@@ -140,12 +140,12 @@ export default function LastCheck() {
     return (
         <section className="flex flex-col w-full gap-2 px-4">
             <div className='flex justify-between px-1'>
-                <h3 className="font-semibold text-lg">Last Check</h3>
+                <h3 className="font-semibold text-lg">Pemeriksaan Terakhir</h3>
                 <button 
                     onClick={handleViewResult}
                     className="flex gap-0.5 text-black/60 text-sm self-center items-center hover:text-[#0D99FF] transition-colors"
                 >
-                    Detail
+                    Rincian
                     <ChevronRight size={16} />
                 </button>
             </div>

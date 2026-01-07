@@ -11,8 +11,8 @@ import RestrictionModal from '@/components/scan/options/restriction-modal';
 import { getScanPresetLabel, getSteps } from '@/constants/scan-steps';
 
 const OPTIONS: OptionItem[] = [
-  { value: 'face', title: 'Face only check-up', desc: 'Scan cepat untuk area wajah. Ideal untuk cek harian & ringkas.', icon: '/images/icon/face-only-icon.svg', selectedIcon: '/images/icon/face-only-icon-selected.svg' },
-  { value: 'full', title: 'Full body check-up', desc: 'Pemeriksaan menyeluruh dari ujung kepala hingga kaki.', icon: '/images/icon/full-body-icon.svg', selectedIcon: '/images/icon/full-body-icon-selected.svg' },
+  { value: 'face', title: 'Periksa wajah', desc: 'Scan cepat untuk area wajah. Ideal untuk cek harian & ringkas.', icon: '/images/icon/face-only-icon.svg', selectedIcon: '/images/icon/face-only-icon-selected.svg' },
+  { value: 'full', title: 'Periksa seluruh Tubuh', desc: 'Pemeriksaan menyeluruh dari ujung kepala hingga kaki.', icon: '/images/icon/full-body-icon.svg', selectedIcon: '/images/icon/full-body-icon-selected.svg' },
 ];
 
 export default function ScanOptions() {
@@ -112,7 +112,7 @@ export default function ScanOptions() {
       <main className="min-h-dvh h-dvh flex flex-col items-center justify-between bg-[linear-gradient(to_bottom,_#0091F3,_#21A6FF)] relative">
         <div className="absolute w-full h-full bg-[url('/images/background/pink-purple.png')] bg-cover bg-center bg-no-repeat mix-blend-soft-light" />
         <div className="px-4 flex flex-col pt-22 items-center gap-4 w-full">
-          <h1 className="font-semibold text-2xl text-white w-full text-center">Choose check-up type do you want to use</h1>
+          <h1 className="font-semibold text-2xl text-white w-full text-center">Pilih jenis pemeriksaan yang ingin digunakan</h1>
           <OptionGroup
             options={OPTIONS}
             value={draftSelected}
@@ -134,7 +134,7 @@ export default function ScanOptions() {
             onClick={() => (window.location.href = route('home'))}
             className="w-full border border-white/50 bg-white/10 text-white py-5 cursor-pointer max-w-lg backdrop-blur-2xl active:scale-95 transition-all duration-300 ease-in-out"
           >
-            Back to Home
+            Kembali ke Beranda
           </Button>
         </div>
       </main>
@@ -178,10 +178,10 @@ export default function ScanOptions() {
             {isStarting ? (
               <span className="flex items-center justify-center gap-2">
                 <span className="h-4 w-4 border-2 border-white/60 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
-                Loading...
+                Memuat...
               </span>
             ) : (
-              'Start Scan'
+              'Mulai Pemeriksaan'
             )}
           </Button>
         </div>

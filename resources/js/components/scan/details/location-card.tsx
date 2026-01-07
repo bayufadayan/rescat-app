@@ -66,7 +66,7 @@ const LocationCard: React.FC<Props> = ({
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-emerald-600">
                         <MapPin className="h-4 w-4" />
-                        <span className="text-sm font-semibold">Your Location</span>
+                        <span className="text-sm font-semibold">Lokasimu</span>
                     </div>
                     <div className="flex items-center gap-2 text-[11px] text-slate-500">
                         <Clock className="h-3.5 w-3.5" />

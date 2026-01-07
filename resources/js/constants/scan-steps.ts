@@ -2,7 +2,7 @@ export type ScanSelection = 'face' | 'full';
 export type ScanType = 'quick' | 'detail';
 
 const LABELS: Record<string, string> = {
-    'face:quick': 'Face only — Quick scan',
+    'face:quick': 'Periksa wajah — Quick scan',
     'face:detail': 'Face only — Detail scan',
     'full:quick': 'Full body — Quick scan',
     'full:detail': 'Full body — Detail scan',

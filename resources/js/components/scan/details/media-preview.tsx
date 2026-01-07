@@ -311,7 +311,7 @@ export default function MediaPreview({ phase = "idle", errorMsg = "" }: Props) {
                                 <div className="p-2 bg-blue-50 rounded-lg">
                                     <Info className="h-5 w-5 text-blue-600" />
                                 </div>
-                                <span className="font-semibold text-slate-800">Face Detection Summary</span>
+                                <span className="font-semibold text-slate-800">Ringkasan Deteksi Wajah</span>
                             </div>
                         
                         <div className="text-sm text-slate-700 space-y-2">

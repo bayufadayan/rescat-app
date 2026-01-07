@@ -87,7 +87,7 @@ export default function HistoryPreview() {
         return (
             <section className="flex flex-col w-full gap-2 px-4">
                 <div className='flex justify-between px-1'>
-                    <h3 className="font-semibold text-lg">History</h3>
+                    <h3 className="font-semibold text-lg">Riwayat</h3>
                 </div>
                 <div className="flex items-center justify-center w-full py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#0D99FF] border-t-transparent"></div>
@@ -100,7 +100,7 @@ export default function HistoryPreview() {
         return (
             <section className="flex flex-col w-full gap-2 px-4">
                 <div className='flex justify-between px-1'>
-                    <h3 className="font-semibold text-lg">History</h3>
+                    <h3 className="font-semibold text-lg">Riwayat</h3>
                 </div>
                 <div className="flex flex-col items-center justify-center w-full py-8 px-4 rounded-2xl bg-gray-50">
                     <Clock className="w-10 h-10 text-gray-300 mb-2" />
@@ -113,13 +113,13 @@ export default function HistoryPreview() {
     return (
         <section className="flex flex-col w-full gap-2 px-4">
             <div className='flex justify-between px-1'>
-                <h3 className="font-semibold text-lg">History</h3>
+                <h3 className="font-semibold text-lg">Riwayat</h3>
                 {sessions.length >= 5 && (
                     <button 
                         onClick={() => router.visit('/history')}
                         className="flex gap-0.5 text-black/60 text-sm self-center items-center hover:text-[#0D99FF] transition-colors"
                     >
-                        See all
+                        Lihat semua
                         <ChevronRight size={16} />
                     </button>
                 )}
@@ -172,7 +172,7 @@ export default function HistoryPreview() {
                                             )}
                                             {session.results_count > 0 && (
                                                 <p className="text-xs text-blue-600 font-medium">
-                                                    {session.results_count} area scanned
+                                                    {session.results_count} area dipindai
                                                 </p>
                                             )}
                                         </div>

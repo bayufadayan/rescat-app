@@ -54,7 +54,7 @@ export default function Topbar() {
                         <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-blue-400 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
                         <span className="relative flex items-center gap-2 text-sm">
                             <LogIn className="w-4 h-4 animate-pulse" />
-                            Login
+                            Masuk
                         </span>
                     </Link>
                 ) : (
